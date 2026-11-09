@@ -1,0 +1,84 @@
+// Each migration runs once, in order. To change the database later,
+// add a new entry with the next version number. Never edit old ones.
+export const migrations = [
+  {
+    version: 1,
+    sql: `
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+      CREATE TABLE app_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `
+  },
+  {
+    version: 2,
+    sql: `
+      CREATE TABLE library_folders (
+        id INTEGER PRIMARY KEY,
+        path TEXT NOT NULL UNIQUE,
+        recursive INTEGER NOT NULL DEFAULT 1,
+        added_at INTEGER NOT NULL
+      );
+      CREATE TABLE tracks (
+        id INTEGER PRIMARY KEY,
+        folder_id INTEGER NOT NULL REFERENCES library_folders(id) ON DELETE CASCADE,
+        path TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL,
+        artist TEXT,
+        album TEXT,
+        album_artist TEXT,
+        track_no INTEGER,
+        disc_no INTEGER,
+        year INTEGER,
+        duration REAL,
+        artwork TEXT,
+        size INTEGER NOT NULL,
+        mtime INTEGER NOT NULL,
+        added_at INTEGER NOT NULL
+      );
+      CREATE INDEX idx_tracks_folder ON tracks(folder_id);
+    `
+  },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE favourites (
+        track_id INTEGER PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE,
+        added_at INTEGER NOT NULL
+      );
+      CREATE TABLE play_history (
+        track_id INTEGER PRIMARY KEY REFERENCES tracks(id) ON DELETE CASCADE,
+        played_at INTEGER NOT NULL
+      );
+            CREATE INDEX idx_history_played ON play_history(played_at);
+    `
+  },
+  {
+    version: 4,
+    sql: `
+      ALTER TABLE tracks ADD COLUMN genre TEXT;
+      UPDATE tracks SET mtime = 0;
+    `
+  }
+]
+
+export function runMigrations(db) {
+  const current = db.prepare('PRAGMA user_version').get().user_version
+
+  for (const migration of migrations) {
+    if (migration.version <= current) continue
+    db.exec('BEGIN')
+    try {
+      db.exec(migration.sql)
+      db.exec(`PRAGMA user_version = ${migration.version}`)
+      db.exec('COMMIT')
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+  }
+}

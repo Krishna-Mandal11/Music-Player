@@ -1,6 +1,13 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { registerMediaScheme, registerMediaHandler } from './media/mediaProtocol'
+import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { openDatabase, closeDatabase, recordAppOpen } from './database/connection'
+import { registerIpcHandlers } from './ipc/registerIpcHandlers'
+import { startWatcher, stopWatcher } from './library/watcher'
+
+registerMediaScheme()
+const dbState = { ok: false, error: null, openCount: 0 }
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -44,15 +51,26 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  ipcMain.handle('app:get-info', () => ({
-    name: app.getName(),
-    version: app.getVersion(),
-    electron: process.versions.electron,
-    chrome: process.versions.chrome,
-    node: process.versions.node
-  }))
+  try {
+    openDatabase()
+    dbState.openCount = recordAppOpen()
+    dbState.ok = true
+  } catch (error) {
+    dbState.error = error.message
+    console.error('Database failed to start:', error)
+  }
 
+  registerMediaHandler()
+
+  registerIpcHandlers(dbState)
   createWindow()
+
+  if (dbState.ok) startWatcher()
+})
+
+app.on('before-quit', () => {
+  stopWatcher()
+  closeDatabase()
 })
 
 app.on('window-all-closed', () => {
