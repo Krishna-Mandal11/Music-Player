@@ -10,9 +10,11 @@ import BrowsePage from './components/BrowsePage'
 import RankedPage from './components/RankedPage'
 import FolderBrowsePage from './components/FolderBrowsePage'
 import EqualizerPage from './components/EqualizerPage'
+import LyricsPage from './components/LyricsPage'
 import SleepTimerPage from './components/SleepTimerPage'
 import PlaylistPage from './components/PlaylistPage'
 import { PlaylistsProvider } from './PlaylistsContext'
+import { TagEditorProvider } from './TagEditorContext'
 import { usePlayer } from './usePlayer'
 import { useFavourites } from './useFavourites'
 import { useSleepTimer } from './useSleepTimer'
@@ -65,6 +67,8 @@ function AppShell() {
     content = <FolderBrowsePage player={player} favourites={favourites} />
   } else if (activePage === 'equalizer') {
     content = <EqualizerPage player={player} />
+  } else if (activePage === 'lyrics') {
+    content = <LyricsPage player={player} />
   } else if (activePage === 'sleep') {
     content = <SleepTimerPage sleep={sleep} player={player} />
   } else if (playlistId !== null) {
@@ -103,7 +107,9 @@ function AppShell() {
 function App() {
   return (
     <PlaylistsProvider>
-      <AppShell />
+      <TagEditorProvider>
+        <AppShell />
+      </TagEditorProvider>
     </PlaylistsProvider>
   )
 }

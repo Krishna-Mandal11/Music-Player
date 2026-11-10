@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ArtThumb from './ArtThumb'
 import { usePlaylists } from '../PlaylistsContext'
+import { useTagEditor } from '../TagEditorContext'
 
 function formatDuration(seconds) {
   if (!seconds) return '–'
@@ -222,6 +223,7 @@ function AddToPlaylistButton({ track }) {
 
 function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) {
   const [dragIndex, setDragIndex] = useState(null)
+  const tagEditor = useTagEditor()
   const [overIndex, setOverIndex] = useState(null)
 
   function endDrag() {
@@ -300,6 +302,30 @@ function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) 
           style={{ color: isFavourite ? '#f87171' : undefined, opacity: isFavourite ? 1 : 0.5 }}
         >
           <Heart filled={isFavourite} />
+        </button>
+        <button
+          className="icon-btn"
+          title="Edit tags and artwork"
+          onClick={(e) => {
+            e.stopPropagation()
+            tagEditor.open(track)
+          }}
+          style={{ opacity: 0.6 }}
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+          </svg>
         </button>
         <AddToPlaylistButton track={track} />
         <div style={{ width: 50, textAlign: 'right', opacity: 0.7 }}>

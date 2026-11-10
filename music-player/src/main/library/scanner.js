@@ -47,7 +47,7 @@ async function collectFiles(root, recursive) {
   return files
 }
 
-async function saveArtwork(data, mime) {
+export async function saveArtwork(data, mime) {
   const hash = createHash('sha1').update(data).digest('hex')
   const file = `${hash}.${mime === 'image/png' ? 'png' : 'jpg'}`
   const target = join(artworkDir(), file)

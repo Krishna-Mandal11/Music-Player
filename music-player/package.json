@@ -20,7 +20,8 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "music-metadata": "^12.3.5"
+    "music-metadata": "^12.3.5",
+    "node-taglib-sharp": "^6.0.3"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^3.0.0",

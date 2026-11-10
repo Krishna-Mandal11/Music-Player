@@ -34,7 +34,10 @@ const api = {
   getTracksByComposer: (name) => ipcRenderer.invoke('browse:composer-tracks', name),
   browseFolder: (dirPath) => ipcRenderer.invoke('browse:folder', dirPath ?? null),
   getArtwork: (file) => ipcRenderer.invoke('library:get-artwork', file),
-
+  getLyrics: (id) => ipcRenderer.invoke('lyrics:get', id),
+  getTagInfo: (id) => ipcRenderer.invoke('tags:get', id),
+  pickArtwork: () => ipcRenderer.invoke('tags:pick-artwork'),
+  saveTags: (payload) => ipcRenderer.invoke('tags:save', payload),
   getPlaylists: () => ipcRenderer.invoke('playlists:list'),
   createPlaylist: (name) => ipcRenderer.invoke('playlists:create', name),
   renamePlaylist: (id, name) => ipcRenderer.invoke('playlists:rename', id, name),

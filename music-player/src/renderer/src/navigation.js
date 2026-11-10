@@ -8,7 +8,8 @@ export const NAV_GROUPS = [
       { id: 'genres', label: 'Genres', milestone: 'M6' },
       { id: 'years', label: 'Years', milestone: 'P2-M3' },
       { id: 'composers', label: 'Composers', milestone: 'P2-M3' },
-      { id: 'browse-folders', label: 'Browse Folders', milestone: 'P2-M3' }
+      { id: 'browse-folders', label: 'Browse Folders', milestone: 'P2-M3' },
+      { id: 'lyrics', label: 'Lyrics', milestone: 'P2-M6' }
     ]
   },
   {
