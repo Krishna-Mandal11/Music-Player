@@ -89,6 +89,16 @@ export const migrations = [
       ALTER TABLE playlists ADD COLUMN shuffle INTEGER NOT NULL DEFAULT 0;
       ALTER TABLE playlists ADD COLUMN repeat TEXT NOT NULL DEFAULT 'off';
     `
+  },
+  {
+    version: 7,
+    sql: `
+      ALTER TABLE tracks ADD COLUMN composer TEXT;
+      ALTER TABLE play_history ADD COLUMN play_count INTEGER NOT NULL DEFAULT 1;
+      CREATE INDEX idx_tracks_added ON tracks(added_at);
+      CREATE INDEX idx_history_count ON play_history(play_count);
+      UPDATE tracks SET mtime = 0;
+    `
   }
 ]
 

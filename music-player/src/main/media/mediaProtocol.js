@@ -15,12 +15,21 @@ const MIME = {
   '.opus': 'audio/ogg'
 }
 
+// Needed so the equalizer (Web Audio) is allowed to process the audio.
+const CORS = { 'Access-Control-Allow-Origin': '*' }
+
 // Must be called before the app is ready.
 export function registerMediaScheme() {
   protocol.registerSchemesAsPrivileged([
     {
       scheme: 'media',
-      privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true }
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        stream: true,
+        corsEnabled: true
+      }
     }
   ])
 }
@@ -55,13 +64,14 @@ export function registerMediaHandler() {
         if (start > end || start >= size) {
           return new Response(null, {
             status: 416,
-            headers: { 'Content-Range': `bytes */${size}` }
+            headers: { ...CORS, 'Content-Range': `bytes */${size}` }
           })
         }
         status = 206
       }
 
       const headers = {
+        ...CORS,
         'Content-Type': type,
         'Accept-Ranges': 'bytes',
         'Content-Length': String(end - start + 1)

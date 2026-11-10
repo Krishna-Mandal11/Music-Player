@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-
+import { initEngine } from './audioEngine'
 function shuffled(list, first) {
   const rest = list.filter((t) => !first || t.id !== first.id)
   for (let i = rest.length - 1; i > 0; i--) {
@@ -11,7 +11,10 @@ function shuffled(list, first) {
 
 export function usePlayer() {
   const audioRef = useRef(null)
-  if (!audioRef.current) audioRef.current = new Audio()
+  if (!audioRef.current) {
+    audioRef.current = new Audio()
+    audioRef.current.crossOrigin = 'anonymous' // lets the equalizer process the audio
+  }
   const saveTimer = useRef(null)
   const baseRef = useRef([]) // the queue in its original (unshuffled) order
   const latest = useRef({})
@@ -60,6 +63,7 @@ export function usePlayer() {
   useEffect(() => {
     const audio = audioRef.current
     audio.preload = 'auto'
+    initEngine(audio)
 
     window.api.getAllSettings().then((s) => {
       const v = typeof s.volume === 'number' ? Math.min(1, Math.max(0, s.volume)) : 0.8

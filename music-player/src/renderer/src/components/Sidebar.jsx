@@ -18,10 +18,12 @@ const inputStyle = {
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
 function Sidebar({ groups, activePage, onNavigate }) {
-  const { playlists, create } = usePlaylists()
+  const { playlists, create, importM3u } = usePlaylists()
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [error, setError] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importNote, setImportNote] = useState(null)
 
   function cancelCreate() {
     setCreating(false)
@@ -36,6 +38,31 @@ function Sidebar({ groups, activePage, onNavigate }) {
       return
     }
     cancelCreate()
+    onNavigate(`playlist:${result.playlist.id}`)
+  }
+
+  async function handleImport() {
+    setImportNote(null)
+    setImporting(true)
+    let result
+    try {
+      result = await importM3u()
+    } catch (err) {
+      result = { ok: false, error: err.message }
+    }
+    setImporting(false)
+
+    if (result.canceled) return
+    if (!result.ok) {
+      setImportNote({ text: result.error, error: true })
+      return
+    }
+
+    let text = `Imported ${result.added} ${result.added === 1 ? 'song' : 'songs'}.`
+    if (result.skipped > 0) {
+      text += ` ${result.skipped} skipped (not in your library).`
+    }
+    setImportNote({ text, error: false })
     onNavigate(`playlist:${result.playlist.id}`)
   }
 
@@ -105,6 +132,23 @@ function Sidebar({ groups, activePage, onNavigate }) {
           <button className="nav-item" onClick={() => setCreating(true)}>
             + New playlist
           </button>
+        )}
+
+        <button className="nav-item" onClick={handleImport} disabled={importing}>
+          {importing ? 'Importing…' : 'Import M3U…'}
+        </button>
+
+        {importNote && (
+          <div
+            style={{
+              fontSize: 12,
+              padding: '4px 12px',
+              color: importNote.error ? '#ff6b6b' : undefined,
+              opacity: importNote.error ? 1 : 0.8
+            }}
+          >
+            {importNote.text}
+          </div>
         )}
       </div>
 

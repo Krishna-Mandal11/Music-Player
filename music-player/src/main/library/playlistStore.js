@@ -1,3 +1,4 @@
+import { normalize } from 'path'
 import { getDb } from '../database/connection'
 
 const TRACK_FIELDS = `t.id, t.title, t.artist, t.album, t.track_no, t.disc_no, t.year, t.duration, t.artwork`
@@ -167,4 +168,62 @@ export function reorderPlaylist(playlistId, orderedIds) {
   })
 
   return { ok: true }
+}
+
+// ---- M3U support ----
+
+// The name and the songs (with file paths) needed to write an M3U file.
+export function getPlaylistForExport(id) {
+  const db = getDb()
+  const playlist = db.prepare('SELECT id, name FROM playlists WHERE id = ?').get(id)
+  if (!playlist) return null
+
+  const rows = db
+    .prepare(
+      `SELECT t.path, t.title, t.artist, t.duration FROM playlist_tracks pt
+       JOIN tracks t ON t.id = pt.track_id
+       WHERE pt.playlist_id = ?
+       ORDER BY pt.position`
+    )
+    .all(id)
+    .map((row) => ({ ...row }))
+
+  return { name: playlist.name, rows }
+}
+
+// Matches file paths against the library. Paths that are not in the library are counted as skipped.
+export function findTrackIdsByPaths(paths) {
+  const all = getDb().prepare('SELECT id, path FROM tracks').all()
+  const byPath = new Map()
+  for (const row of all) byPath.set(normalize(row.path).toLowerCase(), row.id)
+
+  const ids = []
+  let skipped = 0
+  for (const filePath of paths) {
+    const id = byPath.get(normalize(filePath).toLowerCase())
+    if (id === undefined) skipped += 1
+    else ids.push(id)
+  }
+  return { ids, skipped }
+}
+
+function uniquePlaylistName(baseName) {
+  const base = cleanName(baseName).slice(0, MAX_NAME_LENGTH - 6) || 'Imported playlist'
+  if (!nameTaken(base, -1)) return base
+  for (let n = 2; n < 1000; n++) {
+    const candidate = `${base} (${n})`
+    if (!nameTaken(candidate, -1)) return candidate
+  }
+  return `${base} (${Date.now()})`
+}
+
+export function createPlaylistWithTracks(baseName, trackIds) {
+  const created = createPlaylist(uniquePlaylistName(baseName))
+  if (!created.ok) return created
+  const result = addTracksToPlaylist(created.playlist.id, trackIds)
+  return {
+    ok: true,
+    playlist: { ...created.playlist, trackCount: result.added },
+    added: result.added
+  }
 }

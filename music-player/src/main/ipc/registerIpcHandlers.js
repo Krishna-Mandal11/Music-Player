@@ -19,7 +19,15 @@ import {
   getTracksByArtist,
   getTracksByAlbum,
   getGenreGroups,
-  getTracksByGenre
+  getTracksByGenre,
+  getFilterOptions,
+  getRecentlyAdded,
+  getMostPlayed,
+  getYearGroups,
+  getTracksByYear,
+  getComposerGroups,
+  getTracksByComposer,
+  browseFolder
 } from '../library/libraryStore'
 import { scanFolders, getArtworkDataUrl } from '../library/scanner'
 import { registerPlaylistIpc } from './registerPlaylistIpc'
@@ -27,12 +35,36 @@ import { registerPlaylistIpc } from './registerPlaylistIpc'
 export function registerIpcHandlers(dbState) {
   registerPlaylistIpc()
 
+  ipcMain.handle('library:get-filter-options', () => getFilterOptions())
+  ipcMain.handle('library:get-recently-added', () => getRecentlyAdded())
+  ipcMain.handle('library:get-most-played', () => getMostPlayed())
+
+  ipcMain.handle('browse:years', () => getYearGroups())
+  ipcMain.handle('browse:year-tracks', (_event, name) => {
+    if (typeof name !== 'string') throw new Error('Invalid year')
+    return getTracksByYear(name)
+  })
+
+  ipcMain.handle('browse:composers', () => getComposerGroups())
+  ipcMain.handle('browse:composer-tracks', (_event, name) => {
+    if (typeof name !== 'string') throw new Error('Invalid composer')
+    return getTracksByComposer(name)
+  })
+
+  ipcMain.handle('browse:folder', (_event, dirPath) => {
+    if (dirPath !== null && dirPath !== undefined && typeof dirPath !== 'string') {
+      throw new Error('Invalid folder')
+    }
+    return browseFolder(dirPath ?? null)
+  })
+
   ipcMain.handle('favourites:get-ids', () => getFavouriteIds())
 
   ipcMain.handle('favourites:toggle', (_event, id) => {
     if (!Number.isInteger(id)) throw new Error('Invalid track')
     return toggleFavourite(id)
   })
+
   ipcMain.handle('browse:genres', () => getGenreGroups())
 
   ipcMain.handle('browse:genre-tracks', (_event, name) => {
@@ -49,10 +81,12 @@ export function registerIpcHandlers(dbState) {
   })
 
   ipcMain.handle('history:get-recent', () => getRecentTracks())
+
   ipcMain.handle('library:get-track', (_event, id) => {
     if (!Number.isInteger(id)) return null
     return getTrack(id)
   })
+
   ipcMain.handle('app:get-info', () => ({
     name: app.getName(),
     version: app.getVersion(),
@@ -110,6 +144,7 @@ export function registerIpcHandlers(dbState) {
     setRecursive(id, recursive === true)
     return true
   })
+
   ipcMain.handle('browse:artists', () => getArtistGroups())
   ipcMain.handle('browse:albums', () => getAlbumGroups())
 

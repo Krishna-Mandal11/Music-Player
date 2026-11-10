@@ -26,7 +26,7 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
+  const [note, setNote] = useState(null)
 
   const load = useCallback(async () => {
     setTracks(await window.api.getPlaylistTracks(playlistId))
@@ -74,12 +74,31 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
     onDeleted()
   }
 
+  async function handleExport() {
+    setNote(null)
+    let result
+    try {
+      result = await window.api.exportPlaylistM3u(playlistId)
+    } catch (err) {
+      result = { ok: false, error: err.message }
+    }
+    if (result.canceled) return
+    if (!result.ok) {
+      setNote({ text: result.error, error: true })
+      return
+    }
+    setNote({
+      text: `Exported ${result.count} ${result.count === 1 ? 'song' : 'songs'} to ${result.filePath}`,
+      error: false
+    })
+  }
+
   function handleReorder(from, to) {
     const next = [...tracks]
     const [moved] = next.splice(from, 1)
     next.splice(to, 0, moved)
     setTracks(next)
-    setNotice('')
+    setNote(null)
 
     reorder(
       playlistId,
@@ -87,12 +106,12 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
     )
       .then((result) => {
         if (result && result.ok === false) {
-          setNotice(result.error)
+          setNote({ text: result.error, error: true })
           load()
         }
       })
       .catch(() => {
-        setNotice('Could not save the new order.')
+        setNote({ text: 'Could not save the new order.', error: true })
         load()
       })
   }
@@ -164,6 +183,13 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
         <button style={button} onClick={startRename} disabled={editing}>
           Rename
         </button>
+        <button
+          style={{ ...button, opacity: tracks.length === 0 ? 0.5 : 1 }}
+          onClick={handleExport}
+          disabled={tracks.length === 0}
+        >
+          Export M3U
+        </button>
         <button style={button} onClick={handleDelete}>
           Delete playlist
         </button>
@@ -175,7 +201,17 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
         {tracks.length > 1 && ' Drag the handle on the left of a song to change the order.'}
       </p>
 
-      {notice && <p style={{ color: '#ff6b6b', fontSize: 13 }}>{notice}</p>}
+      {note && (
+        <p
+          style={{
+            color: note.error ? '#ff6b6b' : undefined,
+            opacity: note.error ? 1 : 0.8,
+            fontSize: 13
+          }}
+        >
+          {note.text}
+        </p>
+      )}
 
       <TrackList
         tracks={tracks}

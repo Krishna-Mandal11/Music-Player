@@ -13,6 +13,9 @@ const api = {
   setFolderRecursive: (id, recursive) => ipcRenderer.invoke('library:set-recursive', id, recursive),
   scanLibrary: (id) => ipcRenderer.invoke('library:scan', id),
   getTracks: (search) => ipcRenderer.invoke('library:get-tracks', search),
+  getFilterOptions: () => ipcRenderer.invoke('library:get-filter-options'),
+  getRecentlyAdded: () => ipcRenderer.invoke('library:get-recently-added'),
+  getMostPlayed: () => ipcRenderer.invoke('library:get-most-played'),
   getFavouriteIds: () => ipcRenderer.invoke('favourites:get-ids'),
   toggleFavourite: (id) => ipcRenderer.invoke('favourites:toggle', id),
   getFavouriteTracks: () => ipcRenderer.invoke('favourites:get-tracks'),
@@ -25,6 +28,11 @@ const api = {
   getTracksByAlbum: (name, artist) => ipcRenderer.invoke('browse:album-tracks', name, artist),
   getGenreGroups: () => ipcRenderer.invoke('browse:genres'),
   getTracksByGenre: (name) => ipcRenderer.invoke('browse:genre-tracks', name),
+  getYearGroups: () => ipcRenderer.invoke('browse:years'),
+  getTracksByYear: (name) => ipcRenderer.invoke('browse:year-tracks', name),
+  getComposerGroups: () => ipcRenderer.invoke('browse:composers'),
+  getTracksByComposer: (name) => ipcRenderer.invoke('browse:composer-tracks', name),
+  browseFolder: (dirPath) => ipcRenderer.invoke('browse:folder', dirPath ?? null),
   getArtwork: (file) => ipcRenderer.invoke('library:get-artwork', file),
 
   getPlaylists: () => ipcRenderer.invoke('playlists:list'),
@@ -38,6 +46,8 @@ const api = {
   removeTrackFromPlaylist: (id, trackId) =>
     ipcRenderer.invoke('playlists:remove-track', id, trackId),
   reorderPlaylist: (id, trackIds) => ipcRenderer.invoke('playlists:reorder', id, trackIds),
+  exportPlaylistM3u: (id) => ipcRenderer.invoke('playlists:export-m3u', id),
+  importPlaylistM3u: () => ipcRenderer.invoke('playlists:import-m3u'),
 
   onScanProgress: (callback) => {
     const handler = (_event, progress) => callback(progress)

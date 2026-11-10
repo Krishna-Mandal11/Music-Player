@@ -7,6 +7,9 @@ import Library from './components/Library'
 import FolderPage from './components/FolderPage'
 import CollectionPage from './components/CollectionPage'
 import BrowsePage from './components/BrowsePage'
+import RankedPage from './components/RankedPage'
+import FolderBrowsePage from './components/FolderBrowsePage'
+import EqualizerPage from './components/EqualizerPage'
 import SleepTimerPage from './components/SleepTimerPage'
 import PlaylistPage from './components/PlaylistPage'
 import { PlaylistsProvider } from './PlaylistsContext'
@@ -16,6 +19,7 @@ import { useSleepTimer } from './useSleepTimer'
 import { NAV_GROUPS } from './navigation'
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
+const BROWSE_KINDS = ['artists', 'albums', 'genres', 'years', 'composers']
 
 function AppShell() {
   const [activePage, setActivePage] = useState('songs')
@@ -49,10 +53,18 @@ function AppShell() {
         favourites={favourites}
       />
     )
-  } else if (activePage === 'artists' || activePage === 'albums' || activePage === 'genres') {
+  } else if (BROWSE_KINDS.includes(activePage)) {
     content = (
       <BrowsePage key={activePage} kind={activePage} player={player} favourites={favourites} />
     )
+  } else if (activePage === 'added' || activePage === 'played') {
+    content = (
+      <RankedPage key={activePage} kind={activePage} player={player} favourites={favourites} />
+    )
+  } else if (activePage === 'browse-folders') {
+    content = <FolderBrowsePage player={player} favourites={favourites} />
+  } else if (activePage === 'equalizer') {
+    content = <EqualizerPage />
   } else if (activePage === 'sleep') {
     content = <SleepTimerPage sleep={sleep} player={player} />
   } else if (playlistId !== null) {

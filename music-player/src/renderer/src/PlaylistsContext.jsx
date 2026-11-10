@@ -72,6 +72,12 @@ export function PlaylistsProvider({ children }) {
   // The page already shows the new order, so this does not trigger a reload.
   const reorder = useCallback((id, trackIds) => window.api.reorderPlaylist(id, trackIds), [])
 
+  const importM3u = useCallback(async () => {
+    const result = await window.api.importPlaylistM3u()
+    if (result.ok) await refresh()
+    return result
+  }, [refresh])
+
   const value = useMemo(
     () => ({
       playlists,
@@ -83,9 +89,22 @@ export function PlaylistsProvider({ children }) {
       setMode,
       addTracks,
       removeTrack,
-      reorder
+      reorder,
+      importM3u
     }),
-    [playlists, version, refresh, create, rename, remove, setMode, addTracks, removeTrack, reorder]
+    [
+      playlists,
+      version,
+      refresh,
+      create,
+      rename,
+      remove,
+      setMode,
+      addTracks,
+      removeTrack,
+      reorder,
+      importM3u
+    ]
   )
 
   return <PlaylistsContext.Provider value={value}>{children}</PlaylistsContext.Provider>

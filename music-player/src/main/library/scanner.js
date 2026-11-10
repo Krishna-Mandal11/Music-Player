@@ -121,6 +121,10 @@ async function readTrack(file, coverCache) {
       Array.isArray(common.genre) && common.genre[0]
         ? String(common.genre[0]).trim() || null
         : null,
+    composer:
+      Array.isArray(common.composer) && common.composer.length > 0
+        ? common.composer.join(', ').trim() || null
+        : null,
     duration: format.duration ?? null,
     artwork
   }
@@ -150,14 +154,14 @@ async function scanOne(folder, summary, onProgress) {
   const upsert = db.prepare(
     `INSERT INTO tracks
        (folder_id, path, title, artist, album, album_artist, track_no, disc_no,
-        year, genre, duration, artwork, size, mtime, added_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        year, genre, composer, duration, artwork, size, mtime, added_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(path) DO UPDATE SET
        title = excluded.title, artist = excluded.artist, album = excluded.album,
        album_artist = excluded.album_artist, track_no = excluded.track_no,
        disc_no = excluded.disc_no, year = excluded.year, genre = excluded.genre,
-       duration = excluded.duration, artwork = excluded.artwork,
-       size = excluded.size, mtime = excluded.mtime`
+       composer = excluded.composer, duration = excluded.duration,
+       artwork = excluded.artwork, size = excluded.size, mtime = excluded.mtime`
   )
 
   const seen = new Set()
@@ -180,6 +184,7 @@ async function scanOne(folder, summary, onProgress) {
           t.discNo,
           t.year,
           t.genre,
+          t.composer,
           t.duration,
           t.artwork,
           t.size,

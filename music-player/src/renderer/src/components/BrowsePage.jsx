@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import ArtThumb from './ArtThumb'
 import TrackList from './TrackList'
+import AddAllToPlaylist from './AddAllToPlaylist'
 
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
@@ -30,6 +31,16 @@ const CONFIG = {
     title: 'Genres',
     loadGroups: () => window.api.getGenreGroups(),
     loadTracks: (g) => window.api.getTracksByGenre(g.name)
+  },
+  years: {
+    title: 'Years',
+    loadGroups: () => window.api.getYearGroups(),
+    loadTracks: (g) => window.api.getTracksByYear(g.name)
+  },
+  composers: {
+    title: 'Composers',
+    loadGroups: () => window.api.getComposerGroups(),
+    loadTracks: (g) => window.api.getTracksByComposer(g.name)
   }
 }
 
@@ -80,7 +91,9 @@ function BrowsePage({ kind, player, favourites }) {
         {isAlbums && selected.artist && (
           <div style={{ fontSize: 13, opacity: 0.7 }}>{selected.artist}</div>
         )}
-        <div style={{ height: 16 }} />
+        <div style={{ margin: '16px 0' }}>
+          <AddAllToPlaylist tracks={tracks} />
+        </div>
         <TrackList tracks={tracks} player={player} favourites={favourites} />
       </div>
     )
