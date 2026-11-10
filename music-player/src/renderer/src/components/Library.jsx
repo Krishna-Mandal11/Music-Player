@@ -1,25 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import TrackList from './TrackList'
-
-const button = {
-  padding: '6px 12px',
-  borderRadius: 6,
-  border: '1px solid rgba(255,255,255,0.2)',
-  background: 'rgba(255,255,255,0.08)',
-  color: 'inherit',
-  cursor: 'pointer',
-  fontSize: 13
-}
-
-const field = {
-  padding: '6px 8px',
-  borderRadius: 6,
-  border: '1px solid rgba(255,255,255,0.2)',
-  background: '#1f1f27',
-  color: 'inherit',
-  fontSize: 13,
-  colorScheme: 'dark'
-}
+import Banner from './Banner'
 
 const SORT_OPTIONS = [
   ['default', 'Artist / album (default)'],
@@ -30,6 +11,31 @@ const SORT_OPTIONS = [
   ['duration', 'Duration'],
   ['added', 'Date added']
 ]
+
+const BANNER_QUERY = {
+  search: '',
+  sort: 'default',
+  dir: 'asc',
+  genre: '',
+  year: null,
+  favouritesOnly: false
+}
+
+function pickBanner(tracks) {
+  const seen = new Set()
+  const withArt = []
+  for (const t of tracks) {
+    if (t.artwork && !seen.has(t.artwork)) {
+      seen.add(t.artwork)
+      withArt.push(t)
+    }
+  }
+  for (let i = withArt.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[withArt[i], withArt[j]] = [withArt[j], withArt[i]]
+  }
+  return withArt.slice(0, 8)
+}
 
 function Library({ player, favourites, refreshKey, onOpenFolders }) {
   const [folders, setFolders] = useState([])
@@ -42,6 +48,7 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
   const [year, setYear] = useState('')
   const [onlyFavourites, setOnlyFavourites] = useState(false)
   const [options, setOptions] = useState({ genres: [], years: [] })
+  const [banner, setBanner] = useState({ items: [], pool: [] })
 
   const query = {
     search,
@@ -71,10 +78,16 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
     setTotal(result.total)
   }, [])
 
+  const loadBanner = useCallback(async () => {
+    const result = await window.api.getTracks(BANNER_QUERY)
+    setBanner({ items: pickBanner(result.tracks), pool: result.tracks })
+  }, [])
+
   useEffect(() => {
     loadFolders()
     loadOptions()
-  }, [loadFolders, loadOptions, refreshKey])
+    loadBanner()
+  }, [loadFolders, loadOptions, loadBanner, refreshKey])
 
   useEffect(() => {
     const timer = setTimeout(() => loadTracks(queryRef.current), 200)
@@ -92,6 +105,7 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
   )
 
   const filtersActive = genre !== '' || year !== '' || onlyFavourites || sort !== 'default'
+  const showBanner = !search && !filtersActive && banner.items.length >= 2
 
   function clearFilters() {
     setSort('default')
@@ -102,49 +116,33 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
   }
 
   return (
-    <div style={{ padding: 24, height: '100%', overflowY: 'auto', boxSizing: 'border-box' }}>
-      <h2 style={{ margin: '0 0 16px' }}>Songs</h2>
+    <div className="page-scroll">
+      <h2 className="page-heading">Songs</h2>
 
       {folders.length === 0 && (
         <div style={{ marginBottom: 16 }}>
           <p style={{ opacity: 0.7, fontSize: 13, margin: '0 0 10px' }}>
             No folders yet. Add a music folder to build your library.
           </p>
-          <button style={button} onClick={onOpenFolders}>
+          <button className="glass-btn" onClick={onOpenFolders}>
             Go to Music Folder
           </button>
         </div>
       )}
 
+      {showBanner && <Banner items={banner.items} pool={banner.pool} player={player} />}
+
       <input
         type="search"
+        className="search-box"
         placeholder="Search title, artist or album"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        style={{
-          width: '100%',
-          boxSizing: 'border-box',
-          padding: '8px 12px',
-          marginBottom: 12,
-          borderRadius: 6,
-          border: '1px solid rgba(255,255,255,0.2)',
-          background: 'rgba(255,255,255,0.06)',
-          color: 'inherit'
-        }}
       />
 
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          gap: 8,
-          marginBottom: 12,
-          fontSize: 13
-        }}
-      >
+      <div className="filter-row">
         <label style={{ opacity: 0.7 }}>Sort</label>
-        <select style={field} value={sort} onChange={(e) => setSort(e.target.value)}>
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
           {SORT_OPTIONS.map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -152,7 +150,8 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
           ))}
         </select>
         <button
-          style={{ ...button, opacity: sort === 'default' ? 0.5 : 1 }}
+          className="glass-btn"
+          style={{ opacity: sort === 'default' ? 0.5 : 1 }}
           disabled={sort === 'default'}
           onClick={() => setDir(dir === 'asc' ? 'desc' : 'asc')}
           title="Switch between ascending and descending"
@@ -160,7 +159,7 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
           {dir === 'asc' ? 'Ascending ↑' : 'Descending ↓'}
         </button>
 
-        <select style={field} value={genre} onChange={(e) => setGenre(e.target.value)}>
+        <select value={genre} onChange={(e) => setGenre(e.target.value)}>
           <option value="">All genres</option>
           {options.genres.map((name) => (
             <option key={name} value={name}>
@@ -169,7 +168,7 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
           ))}
         </select>
 
-        <select style={field} value={year} onChange={(e) => setYear(e.target.value)}>
+        <select value={year} onChange={(e) => setYear(e.target.value)}>
           <option value="">All years</option>
           {options.years.map((y) => (
             <option key={y} value={y}>
@@ -178,7 +177,7 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
           ))}
         </select>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <input
             type="checkbox"
             checked={onlyFavourites}
@@ -188,7 +187,7 @@ function Library({ player, favourites, refreshKey, onOpenFolders }) {
         </label>
 
         {filtersActive && (
-          <button style={button} onClick={clearFilters}>
+          <button className="glass-btn" onClick={clearFilters}>
             Clear filters
           </button>
         )}

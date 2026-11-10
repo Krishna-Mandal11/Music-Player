@@ -242,6 +242,7 @@ function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) 
     return (
       <div
         key={track.id}
+        className="track-row"
         onClick={() => (onPlay ? onPlay(track) : player.play(track, tracks))}
         title="Click to play"
         draggable={!!onReorder}
@@ -270,12 +271,12 @@ function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) 
           gap: 12,
           padding: '6px 8px',
           margin: '0 -8px',
-          borderRadius: 6,
+          borderRadius: 12,
           cursor: 'pointer',
           fontSize: 13,
           opacity: isDragging ? 0.4 : 1,
           boxShadow: showDropLine ? dropLine : 'none',
-          background: isCurrent ? 'rgba(255,255,255,0.08)' : 'transparent'
+          background: isCurrent ? 'rgba(124,92,255,0.22)' : undefined
         }}
       >
         {onReorder && (
