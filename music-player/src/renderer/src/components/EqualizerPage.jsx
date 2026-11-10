@@ -67,7 +67,7 @@ function SliderRow({ label, value, min, max, step, display, onChange, resetTo })
   )
 }
 
-function EqualizerPage() {
+function EqualizerPage({ player }) {
   const { state, customPresets } = useSyncExternalStore(subscribe, getSnapshot)
   const [newName, setNewName] = useState('')
   const [message, setMessage] = useState('')
@@ -278,6 +278,35 @@ function EqualizerPage() {
         <p style={{ margin: '8px 0 0', fontSize: 12, opacity: 0.6 }}>
           Uses a compressor that tames sudden loud peaks and lifts the overall level. It works on
           what is playing, so it does not need song tags.
+        </p>
+      </div>
+
+      <div style={section}>
+        <h3 style={heading}>Song transitions</h3>
+        <SliderRow
+          label="Crossfade"
+          min={0}
+          max={12}
+          step={1}
+          value={player.crossfade}
+          display={player.crossfade === 0 ? 'Off' : `${player.crossfade} s`}
+          onChange={(v) => player.setCrossfade(v)}
+          resetTo={0}
+        />
+        <label
+          style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, marginLeft: 82 }}
+        >
+          <input
+            type="checkbox"
+            checked={player.gapless}
+            onChange={(e) => player.setGapless(e.target.checked)}
+          />
+          Gapless (a 0.15 second overlap hides the gap between songs)
+        </label>
+        <p style={{ margin: '8px 0 0 82px', fontSize: 12, opacity: 0.6 }}>
+          Crossfade takes priority when it is above 0. Clicking a song, Next and Previous switch
+          instantly. Transitions are skipped for repeat-one and the sleep timer&apos;s stop after
+          this song.
         </p>
       </div>
 

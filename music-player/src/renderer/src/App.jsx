@@ -64,7 +64,7 @@ function AppShell() {
   } else if (activePage === 'browse-folders') {
     content = <FolderBrowsePage player={player} favourites={favourites} />
   } else if (activePage === 'equalizer') {
-    content = <EqualizerPage />
+    content = <EqualizerPage player={player} />
   } else if (activePage === 'sleep') {
     content = <SleepTimerPage sleep={sleep} player={player} />
   } else if (playlistId !== null) {

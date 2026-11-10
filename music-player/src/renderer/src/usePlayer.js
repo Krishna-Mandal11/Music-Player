@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { initEngine } from './audioEngine'
+import { initEngine, fadeDeck } from './audioEngine'
+
 function shuffled(list, first) {
   const rest = list.filter((t) => !first || t.id !== first.id)
   for (let i = rest.length - 1; i > 0; i--) {
@@ -9,12 +10,27 @@ function shuffled(list, first) {
   return first ? [first, ...rest] : rest
 }
 
+function makeAudio() {
+  const audio = new Audio()
+  audio.crossOrigin = 'anonymous' // lets the equalizer process the audio
+  audio.preload = 'auto'
+  return audio
+}
+
+const GAPLESS_FADE = 0.15 // seconds of overlap used to hide the gap
+const PRELOAD_WITHIN = 20 // start loading the next song this many seconds before the end
+
 export function usePlayer() {
+  // Two audio elements ("decks"): one plays, the other preloads the next song.
+  const decksRef = useRef(null)
   const audioRef = useRef(null)
-  if (!audioRef.current) {
-    audioRef.current = new Audio()
-    audioRef.current.crossOrigin = 'anonymous' // lets the equalizer process the audio
+  if (!decksRef.current) {
+    decksRef.current = [makeAudio(), makeAudio()]
+    audioRef.current = decksRef.current[0]
   }
+  const activeRef = useRef(0)
+  const preloadedRef = useRef(null) // id of the song loaded on the idle deck
+  const transitionRef = useRef({ busy: false, timer: null })
   const saveTimer = useRef(null)
   const baseRef = useRef([]) // the queue in its original (unshuffled) order
   const latest = useRef({})
@@ -33,12 +49,14 @@ export function usePlayer() {
   const [muted, setMutedState] = useState(false)
   const [error, setError] = useState('')
   const [stopAfterTrack, setStopAfterTrackState] = useState(false)
+  const [crossfade, setCrossfadeState] = useState(0) // seconds, 0 = off
+  const [gapless, setGaplessState] = useState(false)
 
   const track = index >= 0 ? queue[index] || null : null
-  latest.current = { queue, index, repeat, shuffle }
+  latest.current = { queue, index, repeat, shuffle, crossfade, gapless }
 
-  const startTrack = useCallback((t) => {
-    const audio = audioRef.current
+  // Bookkeeping when a song begins (by click, next, or an automatic transition)
+  const markStarted = useCallback((t) => {
     setError('')
     window.api.setSetting('lastTrackId', t.id)
     window.api.setSetting('lastPosition', 0)
@@ -46,9 +64,30 @@ export function usePlayer() {
     window.api.recordPlay(t.id)
     setCurrentTime(0)
     setDuration(t.duration || 0)
-    audio.src = `media://track/${t.id}`
-    audio.play().catch((e) => console.error('play() failed:', e))
   }, [])
+
+  // Stops a crossfade in progress (used when you pick something yourself)
+  const cancelTransition = useCallback(() => {
+    const tr = transitionRef.current
+    if (!tr.busy) return
+    clearTimeout(tr.timer)
+    tr.busy = false
+    const old = decksRef.current[1 - activeRef.current]
+    old.pause()
+    fadeDeck(old, 0, 0)
+    fadeDeck(audioRef.current, 1, 0)
+  }, [])
+
+  const startTrack = useCallback(
+    (t) => {
+      cancelTransition()
+      const audio = audioRef.current
+      markStarted(t)
+      audio.src = `media://track/${t.id}`
+      audio.play().catch((e) => console.error('play() failed:', e))
+    },
+    [cancelTransition, markStarted]
+  )
 
   const goTo = useCallback(
     (i) => {
@@ -60,19 +99,61 @@ export function usePlayer() {
     [startTrack]
   )
 
+  // Automatic switch to the preloaded song on the other deck, with a fade.
+  const startTransition = useCallback(
+    (nextIndex, seconds) => {
+      const t = latest.current.queue[nextIndex]
+      if (!t) return
+      const tr = transitionRef.current
+      const old = audioRef.current
+      const next = decksRef.current[1 - activeRef.current]
+
+      tr.busy = true
+      activeRef.current = 1 - activeRef.current
+      audioRef.current = next
+      preloadedRef.current = null
+
+      next.currentTime = 0
+      fadeDeck(next, 1, seconds, 0)
+      fadeDeck(old, 0, seconds)
+      next.play().catch((e) => console.error('play() failed:', e))
+
+      setIndex(nextIndex)
+      markStarted(t)
+      setDuration(t.duration || (Number.isFinite(next.duration) ? next.duration : 0))
+      setPlaying(true)
+
+      clearTimeout(tr.timer)
+      tr.timer = setTimeout(
+        () => {
+          old.pause()
+          tr.busy = false
+        },
+        seconds * 1000 + 200
+      )
+    },
+    [markStarted]
+  )
+
   useEffect(() => {
-    const audio = audioRef.current
-    audio.preload = 'auto'
-    initEngine(audio)
+    const decks = decksRef.current
+    const audio = audioRef.current // deck 0 is the active one at startup
+    initEngine(decks)
 
     window.api.getAllSettings().then((s) => {
       const v = typeof s.volume === 'number' ? Math.min(1, Math.max(0, s.volume)) : 0.8
-      audio.volume = v
-      audio.muted = s.muted === true
+      decks.forEach((d) => {
+        d.volume = v
+        d.muted = s.muted === true
+      })
       setVolumeState(v)
-      setMutedState(audio.muted)
+      setMutedState(s.muted === true)
       setShuffle(s.shuffle === true)
       if (s.repeat === 'all' || s.repeat === 'one') setRepeat(s.repeat)
+      if (typeof s.crossfade === 'number') {
+        setCrossfadeState(Math.min(12, Math.max(0, Math.round(s.crossfade))))
+      }
+      setGaplessState(s.gapless === true)
 
       // Restore the last song (loaded but not played) and its position
       if (typeof s.lastTrackId === 'number' && !audio.src) {
@@ -102,56 +183,98 @@ export function usePlayer() {
       }
     })
 
-    const onTime = () => setCurrentTime(audio.currentTime)
-    const onDuration = () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0)
-    const onPlay = () => setPlaying(true)
-    const onPause = () => setPlaying(false)
-    const onEnded = () => advanceRef.current(true)
-    const onError = () => {
-      console.error('Audio error:', audio.error && audio.error.code, audio.src)
-      setPlaying(false)
-      setError('This file could not be played.')
+    // Events only count when they come from the deck that is currently playing
+    const onlyActive = (fn) => (e) => {
+      if (e.target === audioRef.current) fn()
     }
-
-    audio.addEventListener('timeupdate', onTime)
-    audio.addEventListener('durationchange', onDuration)
-    audio.addEventListener('loadedmetadata', onDuration)
-    audio.addEventListener('play', onPlay)
-    audio.addEventListener('pause', onPause)
-    audio.addEventListener('ended', onEnded)
-    audio.addEventListener('error', onError)
+    const handlers = {
+      timeupdate: onlyActive(() => setCurrentTime(audioRef.current.currentTime)),
+      durationchange: onlyActive(() => {
+        const d = audioRef.current.duration
+        setDuration(Number.isFinite(d) ? d : 0)
+      }),
+      loadedmetadata: onlyActive(() => {
+        const d = audioRef.current.duration
+        setDuration(Number.isFinite(d) ? d : 0)
+      }),
+      play: onlyActive(() => setPlaying(true)),
+      pause: onlyActive(() => setPlaying(false)),
+      ended: onlyActive(() => advanceRef.current(true)),
+      error: onlyActive(() => {
+        const a = audioRef.current
+        console.error('Audio error:', a.error && a.error.code, a.src)
+        setPlaying(false)
+        setError('This file could not be played.')
+      })
+    }
+    decks.forEach((d) => {
+      for (const [name, fn] of Object.entries(handlers)) d.addEventListener(name, fn)
+    })
 
     return () => {
-      audio.pause()
-      audio.removeEventListener('timeupdate', onTime)
-      audio.removeEventListener('durationchange', onDuration)
-      audio.removeEventListener('loadedmetadata', onDuration)
-      audio.removeEventListener('play', onPlay)
-      audio.removeEventListener('pause', onPause)
-      audio.removeEventListener('ended', onEnded)
-      audio.removeEventListener('error', onError)
+      decks.forEach((d) => {
+        d.pause()
+        for (const [name, fn] of Object.entries(handlers)) d.removeEventListener(name, fn)
+      })
     }
   }, [])
 
   // Save the playback position every 2 seconds while playing, and on pause
   useEffect(() => {
-    const audio = audioRef.current
-    const timer = setInterval(() => {
-      if (audio.src && !audio.paused && audio.readyState >= 1) {
-        window.api.setSetting('lastPosition', audio.currentTime)
-      }
-    }, 2000)
-    const onPause = () => {
-      if (audio.src && audio.readyState >= 1) {
-        window.api.setSetting('lastPosition', audio.currentTime)
-      }
+    const decks = decksRef.current
+    const save = () => {
+      const a = audioRef.current
+      if (a.src && a.readyState >= 1) window.api.setSetting('lastPosition', a.currentTime)
     }
-    audio.addEventListener('pause', onPause)
+    const timer = setInterval(() => {
+      const a = audioRef.current
+      if (a.src && !a.paused) save()
+    }, 2000)
+    const onPause = (e) => {
+      if (e.target === audioRef.current) save()
+    }
+    decks.forEach((d) => d.addEventListener('pause', onPause))
     return () => {
       clearInterval(timer)
-      audio.removeEventListener('pause', onPause)
+      decks.forEach((d) => d.removeEventListener('pause', onPause))
     }
   }, [])
+
+  // Preloads the next song and starts the crossfade / gapless switch near the end
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const { queue: q, index: i, repeat: r, crossfade: cf, gapless: gl } = latest.current
+      const active = audioRef.current
+      if (transitionRef.current.busy) return
+      if (!active.src || active.paused) return
+      if (stopAfterRef.current || r === 'one') return
+      if (cf <= 0 && !gl) return
+
+      const dur = active.duration
+      if (!Number.isFinite(dur) || dur <= 0) return
+
+      let nextIndex = -1
+      if (i >= 0 && i < q.length - 1) nextIndex = i + 1
+      else if (i >= 0 && r === 'all' && q.length > 0) nextIndex = 0
+      if (nextIndex < 0) return
+
+      const next = q[nextIndex]
+      const idle = decksRef.current[1 - activeRef.current]
+      const remaining = dur - active.currentTime
+      const rate = active.playbackRate || 1
+
+      if (remaining < PRELOAD_WITHIN * rate && preloadedRef.current !== next.id) {
+        preloadedRef.current = next.id
+        idle.src = `media://track/${next.id}`
+      }
+
+      const lead = cf > 0 ? Math.min(cf, dur / 2) : GAPLESS_FADE
+      if (remaining <= lead * rate && preloadedRef.current === next.id && idle.readyState >= 3) {
+        startTransition(nextIndex, lead)
+      }
+    }, 100)
+    return () => clearInterval(timer)
+  }, [startTransition])
 
   // Moves to the next track. auto = true when a song ended by itself.
   advanceRef.current = (auto) => {
@@ -271,6 +394,7 @@ export function usePlayer() {
         setIndex(current ? baseRef.current.findIndex((x) => x.id === current.id) : -1)
       }
     }
+    preloadedRef.current = null // the "next" song may have changed
     setShuffle(value)
     window.api.setSetting('shuffle', value)
   }, [])
@@ -281,16 +405,31 @@ export function usePlayer() {
     window.api.setSetting('repeat', value)
   }, [])
 
+  const setCrossfade = useCallback((seconds) => {
+    const value = Math.min(12, Math.max(0, Math.round(Number(seconds) || 0)))
+    setCrossfadeState(value)
+    window.api.setSetting('crossfade', value)
+  }, [])
+
+  const setGapless = useCallback((value) => {
+    setGaplessState(value === true)
+    window.api.setSetting('gapless', value === true)
+  }, [])
+
   const seek = useCallback((time) => {
     audioRef.current.currentTime = time
     setCurrentTime(time)
   }, [])
 
   const setVolume = useCallback((v) => {
-    const audio = audioRef.current
-    audio.volume = v
-    if (v > 0 && audio.muted) {
-      audio.muted = false
+    const decks = decksRef.current
+    decks.forEach((d) => {
+      d.volume = v
+    })
+    if (v > 0 && audioRef.current.muted) {
+      decks.forEach((d) => {
+        d.muted = false
+      })
       setMutedState(false)
       window.api.setSetting('muted', false)
     }
@@ -300,10 +439,12 @@ export function usePlayer() {
   }, [])
 
   const toggleMute = useCallback(() => {
-    const audio = audioRef.current
-    audio.muted = !audio.muted
-    setMutedState(audio.muted)
-    window.api.setSetting('muted', audio.muted)
+    const value = !audioRef.current.muted
+    decksRef.current.forEach((d) => {
+      d.muted = value
+    })
+    setMutedState(value)
+    window.api.setSetting('muted', value)
   }, [])
 
   return {
@@ -319,8 +460,12 @@ export function usePlayer() {
     muted,
     error,
     stopAfterTrack,
+    crossfade,
+    gapless,
     pause,
     setStopAfterTrack,
+    setCrossfade,
+    setGapless,
     play,
     playList,
     toggle,

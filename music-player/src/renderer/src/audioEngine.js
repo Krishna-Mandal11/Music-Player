@@ -1,5 +1,5 @@
-// Audio chain between the <audio> element and the speakers.
-// source -> preamp -> 10 EQ bands -> bass -> treble -> compressor -> makeup gain -> balance -> out
+// Audio chain between the two <audio> elements and the speakers.
+// source -> deck gain -> preamp -> 10 EQ bands -> bass -> treble -> compressor -> makeup -> balance -> out
 
 export const BANDS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
 export const BAND_LABELS = ['31', '62', '125', '250', '500', '1k', '2k', '4k', '8k', '16k']
@@ -28,9 +28,10 @@ function defaultState() {
   }
 }
 
-let audioEl = null
+let audioEls = []
 let ctx = null
 let nodes = null
+const deckGains = new Map()
 let state = defaultState()
 let customPresets = {}
 let snapshot = { state, customPresets }
@@ -71,10 +72,9 @@ function sanitizeCustom(raw) {
   return out
 }
 
-function build(audio) {
+function build(audios) {
   const AC = window.AudioContext || window.webkitAudioContext
   ctx = new AC({ latencyHint: 'playback' })
-  const source = ctx.createMediaElementSource(audio)
 
   const pre = ctx.createGain()
   const filters = BANDS.map((freq) => {
@@ -96,18 +96,27 @@ function build(audio) {
   const makeup = ctx.createGain()
   const pan = ctx.createStereoPanner()
 
-  const chain = [source, pre, ...filters, bass, treble, comp, makeup, pan, ctx.destination]
+  const chain = [pre, ...filters, bass, treble, comp, makeup, pan, ctx.destination]
   for (let i = 0; i < chain.length - 1; i++) chain[i].connect(chain[i + 1])
+
+  // each audio element gets its own fade gain feeding the shared chain
+  for (const audio of audios) {
+    const source = ctx.createMediaElementSource(audio)
+    const deck = ctx.createGain()
+    source.connect(deck)
+    deck.connect(pre)
+    deckGains.set(audio, deck)
+  }
 
   nodes = { pre, filters, bass, treble, comp, makeup, pan }
 }
 
 function apply() {
-  if (audioEl) {
+  for (const audio of audioEls) {
     // defaultPlaybackRate matters: loading a new song resets playbackRate to it
-    audioEl.defaultPlaybackRate = state.speed
-    audioEl.playbackRate = state.speed
-    audioEl.preservesPitch = true
+    audio.defaultPlaybackRate = state.speed
+    audio.playbackRate = state.speed
+    audio.preservesPitch = true
   }
   if (!nodes) return
 
@@ -160,18 +169,33 @@ function update(next) {
   emit()
 }
 
-export function initEngine(audio) {
-  if (audioEl === audio) return
-  audioEl = audio
+// Fades one audio element's own gain to `to` (0 to 1) over `seconds`.
+// `from` (optional) sets the starting level. Returns false if the engine isn't running.
+export function fadeDeck(audio, to, seconds, from) {
+  const gain = deckGains.get(audio)
+  if (!gain || !ctx) return false
+  const t = ctx.currentTime
+  gain.gain.cancelScheduledValues(t)
+  gain.gain.setValueAtTime(typeof from === 'number' ? from : gain.gain.value, t)
+  if (seconds > 0) gain.gain.linearRampToValueAtTime(to, t + seconds)
+  else gain.gain.setValueAtTime(to, t)
+  return true
+}
+
+export function initEngine(audios) {
+  if (audioEls.length > 0) return
+  audioEls = audios
   try {
-    build(audio)
+    build(audios)
   } catch (error) {
     console.error('Audio engine could not start:', error)
     nodes = null
   }
-  audio.addEventListener('play', () => {
-    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {})
-  })
+  for (const audio of audios) {
+    audio.addEventListener('play', () => {
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {})
+    })
+  }
 
   apply()
   Promise.all([window.api.getSetting('eqState'), window.api.getSetting('eqCustomPresets')])
