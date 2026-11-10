@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import ArtThumb from './ArtThumb'
+import { usePlaylists } from '../PlaylistsContext'
 
 function formatDuration(seconds) {
   if (!seconds) return '–'
@@ -24,9 +26,188 @@ function Heart({ filled }) {
   )
 }
 
+function PlusIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function CrossIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  )
+}
+
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
-function TrackList({ tracks, player, favourites }) {
+const menuItem = {
+  display: 'block',
+  width: '100%',
+  textAlign: 'left',
+  padding: '7px 8px',
+  borderRadius: 6,
+  border: 'none',
+  background: 'transparent',
+  color: 'inherit',
+  cursor: 'pointer',
+  fontSize: 13,
+  ...ellipsis
+}
+
+function AddToPlaylistButton({ track }) {
+  const { playlists, create, addTracks } = usePlaylists()
+  const [open, setOpen] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [message, setMessage] = useState('')
+
+  function close() {
+    setOpen(false)
+    setNewName('')
+    setMessage('')
+  }
+
+  async function addTo(playlist) {
+    const result = await addTracks(playlist.id, [track.id])
+    if (result.ok === false) {
+      setMessage(result.error)
+      return
+    }
+    setMessage(result.added > 0 ? `Added to ${playlist.name}` : `Already in ${playlist.name}`)
+    setTimeout(close, 900)
+  }
+
+  async function createAndAdd() {
+    const created = await create(newName)
+    if (!created.ok) {
+      setMessage(created.error)
+      return
+    }
+    await addTo(created.playlist)
+  }
+
+  return (
+    <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+      <button
+        className="icon-btn"
+        title="Add to playlist"
+        onClick={() => setOpen(true)}
+        style={{ opacity: 0.6 }}
+      >
+        <PlusIcon />
+      </button>
+
+      {open && (
+        <>
+          <div onClick={close} style={{ position: 'fixed', inset: 0, zIndex: 20 }} />
+          <div
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '100%',
+              zIndex: 21,
+              width: 240,
+              maxHeight: 280,
+              overflowY: 'auto',
+              padding: 8,
+              borderRadius: 8,
+              border: '1px solid #33333d',
+              background: '#1f1f27',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)'
+            }}
+          >
+            <div style={{ fontSize: 11, opacity: 0.6, padding: '0 8px 6px' }}>ADD TO PLAYLIST</div>
+
+            {playlists.length === 0 && (
+              <div style={{ fontSize: 12, opacity: 0.7, padding: '0 8px 8px' }}>
+                No playlists yet. Create one below.
+              </div>
+            )}
+
+            {playlists.map((playlist) => (
+              <button
+                key={playlist.id}
+                style={menuItem}
+                title={playlist.name}
+                onClick={() => addTo(playlist)}
+                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                {playlist.name}
+              </button>
+            ))}
+
+            <div style={{ display: 'flex', gap: 6, padding: '8px 0 0' }}>
+              <input
+                placeholder="New playlist"
+                value={newName}
+                maxLength={100}
+                onChange={(e) => {
+                  setNewName(e.target.value)
+                  setMessage('')
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') createAndAdd()
+                  if (e.key === 'Escape') close()
+                }}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  padding: '6px 8px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(255,255,255,0.25)',
+                  background: 'rgba(255,255,255,0.06)',
+                  color: 'inherit',
+                  fontSize: 13,
+                  userSelect: 'text'
+                }}
+              />
+              <button
+                onClick={createAndAdd}
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  fontSize: 13
+                }}
+              >
+                Create
+              </button>
+            </div>
+
+            {message && <div style={{ fontSize: 12, opacity: 0.85, paddingTop: 8 }}>{message}</div>}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function TrackList({ tracks, player, favourites, onRemove }) {
   return tracks.map((track) => {
     const isCurrent = player.track && player.track.id === track.id
     const isFavourite = favourites.ids.has(track.id)
@@ -64,9 +245,23 @@ function TrackList({ tracks, player, favourites }) {
         >
           <Heart filled={isFavourite} />
         </button>
+        <AddToPlaylistButton track={track} />
         <div style={{ width: 50, textAlign: 'right', opacity: 0.7 }}>
           {formatDuration(track.duration)}
         </div>
+        {onRemove && (
+          <button
+            className="icon-btn"
+            title="Remove from this playlist"
+            onClick={(e) => {
+              e.stopPropagation()
+              onRemove(track)
+            }}
+            style={{ opacity: 0.6 }}
+          >
+            <CrossIcon />
+          </button>
+        )}
       </div>
     )
   })

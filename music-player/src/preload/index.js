@@ -26,6 +26,16 @@ const api = {
   getGenreGroups: () => ipcRenderer.invoke('browse:genres'),
   getTracksByGenre: (name) => ipcRenderer.invoke('browse:genre-tracks', name),
   getArtwork: (file) => ipcRenderer.invoke('library:get-artwork', file),
+
+  getPlaylists: () => ipcRenderer.invoke('playlists:list'),
+  createPlaylist: (name) => ipcRenderer.invoke('playlists:create', name),
+  renamePlaylist: (id, name) => ipcRenderer.invoke('playlists:rename', id, name),
+  deletePlaylist: (id) => ipcRenderer.invoke('playlists:delete', id),
+  getPlaylistTracks: (id) => ipcRenderer.invoke('playlists:get-tracks', id),
+  addTracksToPlaylist: (id, trackIds) => ipcRenderer.invoke('playlists:add-tracks', id, trackIds),
+  removeTrackFromPlaylist: (id, trackId) =>
+    ipcRenderer.invoke('playlists:remove-track', id, trackId),
+
   onScanProgress: (callback) => {
     const handler = (_event, progress) => callback(progress)
     ipcRenderer.on('library:scan-progress', handler)

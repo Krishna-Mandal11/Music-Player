@@ -8,6 +8,8 @@ import FolderPage from './components/FolderPage'
 import CollectionPage from './components/CollectionPage'
 import BrowsePage from './components/BrowsePage'
 import SleepTimerPage from './components/SleepTimerPage'
+import PlaylistPage from './components/PlaylistPage'
+import { PlaylistsProvider } from './PlaylistsContext'
 import { usePlayer } from './usePlayer'
 import { useFavourites } from './useFavourites'
 import { useSleepTimer } from './useSleepTimer'
@@ -15,13 +17,14 @@ import { NAV_GROUPS } from './navigation'
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 
-function App() {
+function AppShell() {
   const [activePage, setActivePage] = useState('songs')
   const [libraryVersion, setLibraryVersion] = useState(0)
   const player = usePlayer()
   const favourites = useFavourites()
   const sleep = useSleepTimer(player)
   const page = ALL_ITEMS.find((item) => item.id === activePage)
+  const playlistId = activePage.startsWith('playlist:') ? Number(activePage.slice(9)) : null
 
   function handleLibraryUpdated() {
     setLibraryVersion((version) => version + 1)
@@ -52,6 +55,16 @@ function App() {
     )
   } else if (activePage === 'sleep') {
     content = <SleepTimerPage sleep={sleep} player={player} />
+  } else if (playlistId !== null) {
+    content = (
+      <PlaylistPage
+        key={activePage}
+        playlistId={playlistId}
+        player={player}
+        favourites={favourites}
+        onDeleted={() => setActivePage('songs')}
+      />
+    )
   } else if (activePage !== 'folder') {
     content = (
       <>
@@ -72,6 +85,14 @@ function App() {
       </main>
       <PlayerBar player={player} />
     </div>
+  )
+}
+
+function App() {
+  return (
+    <PlaylistsProvider>
+      <AppShell />
+    </PlaylistsProvider>
   )
 }
 

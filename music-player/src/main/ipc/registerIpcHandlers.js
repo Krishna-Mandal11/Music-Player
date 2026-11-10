@@ -22,8 +22,11 @@ import {
   getTracksByGenre
 } from '../library/libraryStore'
 import { scanFolders, getArtworkDataUrl } from '../library/scanner'
+import { registerPlaylistIpc } from './registerPlaylistIpc'
 
 export function registerIpcHandlers(dbState) {
+  registerPlaylistIpc()
+
   ipcMain.handle('favourites:get-ids', () => getFavouriteIds())
 
   ipcMain.handle('favourites:toggle', (_event, id) => {
