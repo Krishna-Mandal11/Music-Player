@@ -340,3 +340,100 @@ input[type='number']:focus {
   border-color: rgba(124, 92, 255, 0.7);
   box-shadow: 0 0 0 3px rgba(124, 92, 255, 0.2);
 }
+
+/* ---------- Step 2: sidebar + player bar ---------- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar > * {
+  flex-shrink: 0;
+}
+
+.nav-bottom {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--glass-border);
+}
+
+.nav-more-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 12px 8px;
+  cursor: pointer;
+}
+
+.nav-more-toggle:hover {
+  color: var(--text);
+}
+
+.nav-more-toggle.has-active span::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.player-bar {
+  position: relative;
+}
+
+.player-artwork {
+  width: 64px;
+  height: 64px;
+  background: none;
+  border-radius: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.queue-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 12px);
+  width: 340px;
+  max-height: 55vh;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(30, 28, 44, 0.82);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 16px 40px rgba(0, 0, 0, 0.5);
+  z-index: 20;
+  font-size: 13px;
+}
+
+.queue-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.queue-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.queue-row.current {
+  background: rgba(124, 92, 255, 0.25);
+  font-weight: 600;
+}

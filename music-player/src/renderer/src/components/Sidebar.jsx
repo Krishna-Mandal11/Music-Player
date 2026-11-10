@@ -1,13 +1,25 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePlaylists } from '../PlaylistsContext'
 
-const SETTINGS_TITLE = 'Settings'
+const LIBRARY_IDS = ['songs', 'artists', 'albums', 'genres']
+const COLLECTION_IDS = ['favourites', 'recent']
+const MORE_IDS = [
+  'years',
+  'composers',
+  'browse-folders',
+  'added',
+  'played',
+  'lyrics',
+  'equalizer',
+  'sleep'
+]
+const BOTTOM_ID = 'folder'
 
 const inputStyle = {
   width: '100%',
   boxSizing: 'border-box',
   padding: '8px 10px',
-  borderRadius: 6,
+  borderRadius: 10,
   border: '1px solid rgba(255,255,255,0.25)',
   background: 'rgba(255,255,255,0.06)',
   color: 'inherit',
@@ -17,6 +29,25 @@ const inputStyle = {
 
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
+function Chevron({ open }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  )
+}
+
 function Sidebar({ groups, activePage, onNavigate }) {
   const { playlists, create, importM3u } = usePlaylists()
   const [creating, setCreating] = useState(false)
@@ -24,6 +55,14 @@ function Sidebar({ groups, activePage, onNavigate }) {
   const [error, setError] = useState('')
   const [importing, setImporting] = useState(false)
   const [importNote, setImportNote] = useState(null)
+  const [moreOpen, setMoreOpen] = useState(MORE_IDS.includes(activePage))
+
+  const byId = new Map(groups.flatMap((group) => group.items).map((item) => [item.id, item]))
+
+  // jumping to a hidden page (e.g. from a button elsewhere) opens the section
+  useEffect(() => {
+    if (MORE_IDS.includes(activePage)) setMoreOpen(true)
+  }, [activePage])
 
   function cancelCreate() {
     setCreating(false)
@@ -66,28 +105,36 @@ function Sidebar({ groups, activePage, onNavigate }) {
     onNavigate(`playlist:${result.playlist.id}`)
   }
 
-  function renderGroup(group) {
-    return (
-      <div className="nav-group" key={group.title}>
-        <div className="nav-group-title">{group.title}</div>
-        {group.items.map((item) => (
-          <button
-            key={item.id}
-            className={item.id === activePage ? 'nav-item active' : 'nav-item'}
-            onClick={() => onNavigate(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-    )
+  function renderItems(ids) {
+    return ids
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((item) => (
+        <button
+          key={item.id}
+          className={item.id === activePage ? 'nav-item active' : 'nav-item'}
+          onClick={() => onNavigate(item.id)}
+        >
+          {item.label}
+        </button>
+      ))
   }
+
+  const moreActive = MORE_IDS.includes(activePage)
 
   return (
     <nav className="sidebar">
       <div className="sidebar-brand">Music Player</div>
 
-      {groups.filter((group) => group.title !== SETTINGS_TITLE).map(renderGroup)}
+      <div className="nav-group">
+        <div className="nav-group-title">Library</div>
+        {renderItems(LIBRARY_IDS)}
+      </div>
+
+      <div className="nav-group">
+        <div className="nav-group-title">Collection</div>
+        {renderItems(COLLECTION_IDS)}
+      </div>
 
       <div className="nav-group">
         <div className="nav-group-title">Playlists</div>
@@ -152,7 +199,19 @@ function Sidebar({ groups, activePage, onNavigate }) {
         )}
       </div>
 
-      {groups.filter((group) => group.title === SETTINGS_TITLE).map(renderGroup)}
+      <div className="nav-group">
+        <button
+          className={moreActive && !moreOpen ? 'nav-more-toggle has-active' : 'nav-more-toggle'}
+          onClick={() => setMoreOpen((open) => !open)}
+          aria-expanded={moreOpen}
+        >
+          <span>More</span>
+          <Chevron open={moreOpen} />
+        </button>
+        {moreOpen && renderItems(MORE_IDS)}
+      </div>
+
+      <div className="nav-bottom">{renderItems([BOTTOM_ID])}</div>
     </nav>
   )
 }

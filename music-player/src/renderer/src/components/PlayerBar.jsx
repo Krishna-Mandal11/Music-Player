@@ -18,6 +18,8 @@ function PauseIcon({ size = 28 }) {
   )
 }
 
+const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+
 function PlayerBar({ player }) {
   const {
     track,
@@ -35,17 +37,13 @@ function PlayerBar({ player }) {
   const [showQueue, setShowQueue] = useState(false)
   const total = duration || track?.duration || 0
   const hasQueue = queue.length > 0
-  const active = (on) => ({ opacity: on ? 1 : 0.5, color: on ? '#4ade80' : undefined })
+  const active = (on) => ({ opacity: on ? 1 : 0.5, color: on ? '#a898ff' : undefined })
 
   return (
     <footer className="player-bar">
       <div className="player-track">
         <div className="player-artwork">
-          {track && track.artwork ? (
-            <ArtThumb file={track.artwork} size={70} />
-          ) : (
-            <Icon name="note" size={28} />
-          )}
+          <ArtThumb file={track ? track.artwork : null} size={64} />
         </div>
         <div className="player-track-text">
           <div className="player-title">{track ? track.title : 'Nothing playing'}</div>
@@ -142,23 +140,7 @@ function PlayerBar({ player }) {
       </div>
 
       {showQueue && (
-        <div
-          style={{
-            position: 'fixed',
-            right: 16,
-            bottom: 100,
-            width: 340,
-            maxHeight: '55vh',
-            overflowY: 'auto',
-            padding: 8,
-            borderRadius: 8,
-            background: '#222',
-            border: '1px solid rgba(255,255,255,0.15)',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            zIndex: 20,
-            fontSize: 13
-          }}
-        >
+        <div className="queue-panel">
           <div style={{ padding: '4px 8px 8px', opacity: 0.7 }}>
             Queue · {queue.length} track{queue.length === 1 ? '' : 's'}
           </div>
@@ -170,33 +152,13 @@ function PlayerBar({ player }) {
           {queue.map((t, i) => (
             <div
               key={`${t.id}-${i}`}
+              className={i === index ? 'queue-row current' : 'queue-row'}
               onClick={() => player.jumpTo(i)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '5px 8px',
-                borderRadius: 6,
-                cursor: 'pointer',
-                background: i === index ? 'rgba(255,255,255,0.1)' : 'transparent',
-                fontWeight: i === index ? 600 : 400
-              }}
             >
               <ArtThumb file={t.artwork} size={32} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {t.title}
-                </div>
-                <div
-                  style={{
-                    opacity: 0.6,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {t.artist || 'Unknown artist'}
-                </div>
+                <div style={ellipsis}>{t.title}</div>
+                <div style={{ ...ellipsis, opacity: 0.6 }}>{t.artist || 'Unknown artist'}</div>
               </div>
             </div>
           ))}
