@@ -20,7 +20,7 @@ function PauseIcon({ size = 28 }) {
 
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
-function PlayerBar({ player }) {
+function PlayerBar({ player, onOpenNowPlaying }) {
   const {
     track,
     queue,
@@ -41,7 +41,11 @@ function PlayerBar({ player }) {
 
   return (
     <footer className="player-bar">
-      <div className="player-track">
+      <div
+        className={track ? 'player-track clickable' : 'player-track'}
+        onClick={track ? onOpenNowPlaying : undefined}
+        title={track ? 'Open Now Playing' : undefined}
+      >
         <div className="player-artwork">
           <ArtThumb file={track ? track.artwork : null} size={64} />
         </div>

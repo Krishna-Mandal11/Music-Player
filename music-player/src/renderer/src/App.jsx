@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import PlayerBar from './components/PlayerBar'
+import NowPlaying from './components/NowPlaying'
 import PlaceholderPage from './components/PlaceholderPage'
 import DbStatus from './components/DbStatus'
 import Library from './components/Library'
@@ -27,6 +28,7 @@ const BROWSE_KINDS = ['artists', 'albums', 'genres', 'years', 'composers']
 function AppShell() {
   const [activePage, setActivePage] = useState('songs')
   const [libraryVersion, setLibraryVersion] = useState(0)
+  const [nowPlayingOpen, setNowPlayingOpen] = useState(false)
   const player = usePlayer()
   useShortcuts(player)
   const favourites = useFavourites()
@@ -101,7 +103,8 @@ function AppShell() {
           <FolderPage onLibraryUpdated={handleLibraryUpdated} />
         </div>
       </main>
-      <PlayerBar player={player} />
+      <PlayerBar player={player} onOpenNowPlaying={() => setNowPlayingOpen(true)} />
+      {nowPlayingOpen && <NowPlaying player={player} onClose={() => setNowPlayingOpen(false)} />}
     </div>
   )
 }
