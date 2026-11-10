@@ -13,7 +13,7 @@ const api = {
   setFolderRecursive: (id, recursive) => ipcRenderer.invoke('library:set-recursive', id, recursive),
   scanLibrary: (id) => ipcRenderer.invoke('library:scan', id),
   getTracks: (search) => ipcRenderer.invoke('library:get-tracks', search),
-    getFavouriteIds: () => ipcRenderer.invoke('favourites:get-ids'),
+  getFavouriteIds: () => ipcRenderer.invoke('favourites:get-ids'),
   toggleFavourite: (id) => ipcRenderer.invoke('favourites:toggle', id),
   getFavouriteTracks: () => ipcRenderer.invoke('favourites:get-tracks'),
   recordPlay: (id) => ipcRenderer.invoke('history:record', id),
@@ -31,11 +31,11 @@ const api = {
     ipcRenderer.on('library:scan-progress', handler)
     return () => ipcRenderer.removeListener('library:scan-progress', handler)
   },
-    onLibraryChanged: (callback) => {
+  onLibraryChanged: (callback) => {
     const handler = () => callback()
     ipcRenderer.on('library:changed', handler)
     return () => ipcRenderer.removeListener('library:changed', handler)
-  },
+  }
 }
 
 contextBridge.exposeInMainWorld('api', api)

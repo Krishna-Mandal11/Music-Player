@@ -118,7 +118,9 @@ async function readTrack(file, coverCache) {
     discNo: common.disk?.no ?? null,
     year: common.year ?? null,
     genre:
-      Array.isArray(common.genre) && common.genre[0] ? String(common.genre[0]).trim() || null : null,
+      Array.isArray(common.genre) && common.genre[0]
+        ? String(common.genre[0]).trim() || null
+        : null,
     duration: format.duration ?? null,
     artwork
   }
@@ -168,8 +170,21 @@ async function scanOne(folder, summary, onProgress) {
     try {
       for (const t of batch) {
         upsert.run(
-          folder.id, t.path, t.title, t.artist, t.album, t.albumArtist, t.trackNo,
-          t.discNo, t.year, t.genre, t.duration, t.artwork, t.size, t.mtime, Date.now()
+          folder.id,
+          t.path,
+          t.title,
+          t.artist,
+          t.album,
+          t.albumArtist,
+          t.trackNo,
+          t.discNo,
+          t.year,
+          t.genre,
+          t.duration,
+          t.artwork,
+          t.size,
+          t.mtime,
+          Date.now()
         )
       }
       db.exec('COMMIT')

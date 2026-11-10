@@ -19,7 +19,19 @@ function PauseIcon({ size = 28 }) {
 }
 
 function PlayerBar({ player }) {
-  const { track, queue, index, shuffle, repeat, playing, currentTime, duration, volume, muted, error } = player
+  const {
+    track,
+    queue,
+    index,
+    shuffle,
+    repeat,
+    playing,
+    currentTime,
+    duration,
+    volume,
+    muted,
+    error
+  } = player
   const [showQueue, setShowQueue] = useState(false)
   const total = duration || track?.duration || 0
   const hasQueue = queue.length > 0
@@ -53,7 +65,12 @@ function PlayerBar({ player }) {
           >
             <Icon name="shuffle" />
           </button>
-          <button className="icon-btn" disabled={!hasQueue} onClick={player.previous} title="Previous">
+          <button
+            className="icon-btn"
+            disabled={!hasQueue}
+            onClick={player.previous}
+            title="Previous"
+          >
             <Icon name="prev" size={24} />
           </button>
           <button
@@ -75,7 +92,11 @@ function PlayerBar({ player }) {
           >
             <Icon name="repeat" />
             {repeat === 'one' && (
-              <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 10, fontWeight: 700 }}>1</span>
+              <span
+                style={{ position: 'absolute', top: 2, right: 2, fontSize: 10, fontWeight: 700 }}
+              >
+                1
+              </span>
             )}
           </button>
         </div>
@@ -141,7 +162,11 @@ function PlayerBar({ player }) {
           <div style={{ padding: '4px 8px 8px', opacity: 0.7 }}>
             Queue · {queue.length} track{queue.length === 1 ? '' : 's'}
           </div>
-          {queue.length === 0 && <div style={{ padding: 8, opacity: 0.6 }}>The queue is empty. Click a song to start.</div>}
+          {queue.length === 0 && (
+            <div style={{ padding: 8, opacity: 0.6 }}>
+              The queue is empty. Click a song to start.
+            </div>
+          )}
           {queue.map((t, i) => (
             <div
               key={`${t.id}-${i}`}
@@ -159,8 +184,17 @@ function PlayerBar({ player }) {
             >
               <ArtThumb file={t.artwork} size={32} />
               <div style={{ minWidth: 0 }}>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
-                <div style={{ opacity: 0.6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {t.title}
+                </div>
+                <div
+                  style={{
+                    opacity: 0.6,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
                   {t.artist || 'Unknown artist'}
                 </div>
               </div>

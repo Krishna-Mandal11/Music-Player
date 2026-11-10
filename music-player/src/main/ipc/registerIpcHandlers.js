@@ -16,24 +16,21 @@ import {
   getRecentTracks,
   getArtistGroups,
   getAlbumGroups,
-   getTracksByArtist,
+  getTracksByArtist,
   getTracksByAlbum,
   getGenreGroups,
-   getTracksByGenre
-
-
+  getTracksByGenre
 } from '../library/libraryStore'
 import { scanFolders, getArtworkDataUrl } from '../library/scanner'
 
 export function registerIpcHandlers(dbState) {
-  
-    ipcMain.handle('favourites:get-ids', () => getFavouriteIds())
+  ipcMain.handle('favourites:get-ids', () => getFavouriteIds())
 
   ipcMain.handle('favourites:toggle', (_event, id) => {
     if (!Number.isInteger(id)) throw new Error('Invalid track')
     return toggleFavourite(id)
   })
-    ipcMain.handle('browse:genres', () => getGenreGroups())
+  ipcMain.handle('browse:genres', () => getGenreGroups())
 
   ipcMain.handle('browse:genre-tracks', (_event, name) => {
     if (typeof name !== 'string') throw new Error('Invalid genre')
@@ -110,7 +107,7 @@ export function registerIpcHandlers(dbState) {
     setRecursive(id, recursive === true)
     return true
   })
-    ipcMain.handle('browse:artists', () => getArtistGroups())
+  ipcMain.handle('browse:artists', () => getArtistGroups())
   ipcMain.handle('browse:albums', () => getAlbumGroups())
 
   ipcMain.handle('browse:artist-tracks', (_event, name) => {

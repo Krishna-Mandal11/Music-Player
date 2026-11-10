@@ -4,6 +4,7 @@ import PlayerBar from './components/PlayerBar'
 import PlaceholderPage from './components/PlaceholderPage'
 import DbStatus from './components/DbStatus'
 import Library from './components/Library'
+import FolderPage from './components/FolderPage'
 import CollectionPage from './components/CollectionPage'
 import BrowsePage from './components/BrowsePage'
 import SleepTimerPage from './components/SleepTimerPage'
@@ -16,14 +17,26 @@ const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
 
 function App() {
   const [activePage, setActivePage] = useState('songs')
+  const [libraryVersion, setLibraryVersion] = useState(0)
   const player = usePlayer()
   const favourites = useFavourites()
   const sleep = useSleepTimer(player)
   const page = ALL_ITEMS.find((item) => item.id === activePage)
 
-  let content
+  function handleLibraryUpdated() {
+    setLibraryVersion((version) => version + 1)
+  }
+
+  let content = null
   if (activePage === 'songs') {
-    content = <Library player={player} favourites={favourites} />
+    content = (
+      <Library
+        player={player}
+        favourites={favourites}
+        refreshKey={libraryVersion}
+        onOpenFolders={() => setActivePage('folder')}
+      />
+    )
   } else if (activePage === 'favourites' || activePage === 'recent') {
     content = (
       <CollectionPage
@@ -39,7 +52,7 @@ function App() {
     )
   } else if (activePage === 'sleep') {
     content = <SleepTimerPage sleep={sleep} player={player} />
-  } else {
+  } else if (activePage !== 'folder') {
     content = (
       <>
         <PlaceholderPage title={page.label} milestone={page.milestone} />
@@ -51,7 +64,12 @@ function App() {
   return (
     <div className="shell">
       <Sidebar groups={NAV_GROUPS} activePage={activePage} onNavigate={setActivePage} />
-      <main className="content">{content}</main>
+      <main className="content">
+        {content}
+        <div style={{ display: activePage === 'folder' ? 'block' : 'none', height: '100%' }}>
+          <FolderPage onLibraryUpdated={handleLibraryUpdated} />
+        </div>
+      </main>
       <PlayerBar player={player} />
     </div>
   )

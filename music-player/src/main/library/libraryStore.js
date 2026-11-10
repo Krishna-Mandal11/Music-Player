@@ -17,7 +17,9 @@ export function listFolders() {
 }
 
 export function getFolder(id) {
-  const row = getDb().prepare('SELECT id, path, recursive FROM library_folders WHERE id = ?').get(id)
+  const row = getDb()
+    .prepare('SELECT id, path, recursive FROM library_folders WHERE id = ?')
+    .get(id)
   return row ? toFolder(row) : null
 }
 
@@ -49,7 +51,9 @@ export function removeFolder(id) {
 }
 
 export function setRecursive(id, recursive) {
-  getDb().prepare('UPDATE library_folders SET recursive = ? WHERE id = ?').run(recursive ? 1 : 0, id)
+  getDb()
+    .prepare('UPDATE library_folders SET recursive = ? WHERE id = ?')
+    .run(recursive ? 1 : 0, id)
 }
 
 const MAX_ROWS = 2000
@@ -74,7 +78,6 @@ export function getTracks(search) {
     .map((row) => ({ ...row }))
   return { tracks, total }
 }
-
 
 export function getTrackPath(id) {
   const row = getDb().prepare('SELECT path FROM tracks WHERE id = ?').get(id)

@@ -81,7 +81,9 @@ body {
   font-size: 14px;
   padding: 10px 12px;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .nav-item:hover {

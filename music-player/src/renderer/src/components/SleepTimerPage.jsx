@@ -42,7 +42,9 @@ function SleepTimerPage({ sleep, player }) {
       {sleep.active && (
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 40, fontWeight: 600 }}>{formatRemaining(sleep.remainingMs)}</div>
-          <p style={{ fontSize: 13, opacity: 0.7 }}>Music will pause when the timer reaches zero.</p>
+          <p style={{ fontSize: 13, opacity: 0.7 }}>
+            Music will pause when the timer reaches zero.
+          </p>
           <button style={button} onClick={sleep.cancel}>
             Cancel timer
           </button>

@@ -278,9 +278,29 @@ export function usePlayer() {
   }, [])
 
   return {
-    track, queue, index, shuffle, repeat, playing, currentTime, duration, volume, muted, error,
-    stopAfterTrack, pause, setStopAfterTrack,
-    play, toggle, next, previous, toggleShuffle, cycleRepeat, jumpTo: goTo,
-    seek, setVolume, toggleMute
+    track,
+    queue,
+    index,
+    shuffle,
+    repeat,
+    playing,
+    currentTime,
+    duration,
+    volume,
+    muted,
+    error,
+    stopAfterTrack,
+    pause,
+    setStopAfterTrack,
+    play,
+    toggle,
+    next,
+    previous,
+    toggleShuffle,
+    cycleRepeat,
+    jumpTo: goTo,
+    seek,
+    setVolume,
+    toggleMute
   }
 }
