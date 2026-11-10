@@ -12,8 +12,13 @@ const button = {
   fontSize: 13
 }
 
+const activeButton = { ...button, background: 'var(--accent)', borderColor: 'var(--accent)' }
+
+const NEXT_REPEAT = { off: 'all', all: 'one', one: 'off' }
+
 function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
-  const { playlists, version, refresh, rename, remove, removeTrack } = usePlaylists()
+  const { playlists, version, refresh, rename, remove, setMode, removeTrack, reorder } =
+    usePlaylists()
   const playlist = playlists.find((p) => p.id === playlistId)
 
   const [tracks, setTracks] = useState([])
@@ -21,6 +26,7 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
 
   const load = useCallback(async () => {
     setTracks(await window.api.getPlaylistTracks(playlistId))
@@ -43,6 +49,8 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
 
   if (!playlist) return null
 
+  const modes = { shuffle: playlist.shuffle, repeat: playlist.repeat }
+
   function startRename() {
     setDraft(playlist.name)
     setError('')
@@ -64,6 +72,29 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
       return
     await remove(playlistId)
     onDeleted()
+  }
+
+  function handleReorder(from, to) {
+    const next = [...tracks]
+    const [moved] = next.splice(from, 1)
+    next.splice(to, 0, moved)
+    setTracks(next)
+    setNotice('')
+
+    reorder(
+      playlistId,
+      next.map((t) => t.id)
+    )
+      .then((result) => {
+        if (result && result.ok === false) {
+          setNotice(result.error)
+          load()
+        }
+      })
+      .catch(() => {
+        setNotice('Could not save the new order.')
+        load()
+      })
   }
 
   return (
@@ -110,13 +141,25 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
         {tracks.length} {tracks.length === 1 ? 'song' : 'songs'}
       </p>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
         <button
           style={{ ...button, opacity: tracks.length === 0 ? 0.5 : 1 }}
           disabled={tracks.length === 0}
-          onClick={() => player.play(tracks[0], tracks)}
+          onClick={() => player.playList(tracks, null, modes)}
         >
           Play
+        </button>
+        <button
+          style={playlist.shuffle ? activeButton : button}
+          onClick={() => setMode(playlistId, !playlist.shuffle, playlist.repeat)}
+        >
+          Shuffle: {playlist.shuffle ? 'on' : 'off'}
+        </button>
+        <button
+          style={playlist.repeat !== 'off' ? activeButton : button}
+          onClick={() => setMode(playlistId, playlist.shuffle, NEXT_REPEAT[playlist.repeat])}
+        >
+          Repeat: {playlist.repeat}
         </button>
         <button style={button} onClick={startRename} disabled={editing}>
           Rename
@@ -126,11 +169,21 @@ function PlaylistPage({ playlistId, player, favourites, onDeleted }) {
         </button>
       </div>
 
+      <p style={{ margin: '0 0 16px', fontSize: 12, opacity: 0.6 }}>
+        Shuffle and repeat are saved for this playlist and used when you press Play or click a song
+        here.
+        {tracks.length > 1 && ' Drag the handle on the left of a song to change the order.'}
+      </p>
+
+      {notice && <p style={{ color: '#ff6b6b', fontSize: 13 }}>{notice}</p>}
+
       <TrackList
         tracks={tracks}
         player={player}
         favourites={favourites}
         onRemove={(track) => removeTrack(playlistId, track.id)}
+        onReorder={handleReorder}
+        onPlay={(track) => player.playList(tracks, track, modes)}
       />
 
       {loaded && tracks.length === 0 && (

@@ -31,10 +31,13 @@ const api = {
   createPlaylist: (name) => ipcRenderer.invoke('playlists:create', name),
   renamePlaylist: (id, name) => ipcRenderer.invoke('playlists:rename', id, name),
   deletePlaylist: (id) => ipcRenderer.invoke('playlists:delete', id),
+  setPlaylistMode: (id, shuffle, repeat) =>
+    ipcRenderer.invoke('playlists:set-mode', id, shuffle, repeat),
   getPlaylistTracks: (id) => ipcRenderer.invoke('playlists:get-tracks', id),
   addTracksToPlaylist: (id, trackIds) => ipcRenderer.invoke('playlists:add-tracks', id, trackIds),
   removeTrackFromPlaylist: (id, trackId) =>
     ipcRenderer.invoke('playlists:remove-track', id, trackId),
+  reorderPlaylist: (id, trackIds) => ipcRenderer.invoke('playlists:reorder', id, trackIds),
 
   onScanProgress: (callback) => {
     const handler = (_event, progress) => callback(progress)

@@ -187,6 +187,31 @@ export function usePlayer() {
     [startTrack]
   )
 
+  // Starts a whole list with its own shuffle and repeat modes (used by playlists).
+  // chosen = the song to start with (or null to pick the first / a random one).
+  const playList = useCallback(
+    (list, chosen, modes) => {
+      if (!Array.isArray(list) || list.length === 0) return
+      const wantShuffle = !!modes && modes.shuffle === true
+      const wantRepeat =
+        modes && (modes.repeat === 'all' || modes.repeat === 'one') ? modes.repeat : 'off'
+      const first =
+        chosen || (wantShuffle ? list[Math.floor(Math.random() * list.length)] : list[0])
+
+      setShuffle(wantShuffle)
+      window.api.setSetting('shuffle', wantShuffle)
+      setRepeat(wantRepeat)
+      window.api.setSetting('repeat', wantRepeat)
+
+      baseRef.current = list
+      const q = wantShuffle ? shuffled(list, first) : list
+      setQueue(q)
+      setIndex(q.findIndex((x) => x.id === first.id))
+      startTrack(first)
+    },
+    [startTrack]
+  )
+
   const toggle = useCallback(() => {
     const audio = audioRef.current
     if (!audio.src) return
@@ -293,6 +318,7 @@ export function usePlayer() {
     pause,
     setStopAfterTrack,
     play,
+    playList,
     toggle,
     next,
     previous,

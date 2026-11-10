@@ -82,6 +82,13 @@ export const migrations = [
       );
       CREATE INDEX idx_playlist_tracks_order ON playlist_tracks(playlist_id, position);
     `
+  },
+  {
+    version: 6,
+    sql: `
+      ALTER TABLE playlists ADD COLUMN shuffle INTEGER NOT NULL DEFAULT 0;
+      ALTER TABLE playlists ADD COLUMN repeat TEXT NOT NULL DEFAULT 'off';
+    `
   }
 ]
 

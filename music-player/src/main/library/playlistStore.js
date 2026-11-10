@@ -31,13 +31,13 @@ function inTransaction(work) {
 export function listPlaylists() {
   return getDb()
     .prepare(
-      `SELECT p.id, p.name, COUNT(pt.track_id) AS trackCount
+      `SELECT p.id, p.name, p.shuffle, p.repeat, COUNT(pt.track_id) AS trackCount
        FROM playlists p LEFT JOIN playlist_tracks pt ON pt.playlist_id = p.id
        GROUP BY p.id
        ORDER BY p.name COLLATE NOCASE`
     )
     .all()
-    .map((row) => ({ ...row }))
+    .map((row) => ({ ...row, shuffle: !!row.shuffle }))
 }
 
 export function createPlaylist(rawName) {
@@ -49,7 +49,16 @@ export function createPlaylist(rawName) {
   const info = getDb()
     .prepare('INSERT INTO playlists (name, created_at, updated_at) VALUES (?, ?, ?)')
     .run(name, now, now)
-  return { ok: true, playlist: { id: Number(info.lastInsertRowid), name, trackCount: 0 } }
+  return {
+    ok: true,
+    playlist: {
+      id: Number(info.lastInsertRowid),
+      name,
+      trackCount: 0,
+      shuffle: false,
+      repeat: 'off'
+    }
+  }
 }
 
 export function renamePlaylist(id, rawName) {
@@ -68,6 +77,12 @@ export function renamePlaylist(id, rawName) {
 export function deletePlaylist(id) {
   // The songs inside are removed from the playlist automatically; your music files are untouched.
   getDb().prepare('DELETE FROM playlists WHERE id = ?').run(id)
+}
+
+export function setPlaylistMode(id, shuffle, repeat) {
+  getDb()
+    .prepare('UPDATE playlists SET shuffle = ?, repeat = ?, updated_at = ? WHERE id = ?')
+    .run(shuffle ? 1 : 0, repeat, Date.now(), id)
 }
 
 export function getPlaylistTracks(id) {
@@ -124,4 +139,32 @@ export function removeTrackFromPlaylist(playlistId, trackId) {
   getDb()
     .prepare('DELETE FROM playlist_tracks WHERE playlist_id = ? AND track_id = ?')
     .run(playlistId, trackId)
+}
+
+// orderedIds must contain exactly the songs that are in the playlist, in the new order.
+export function reorderPlaylist(playlistId, orderedIds) {
+  const db = getDb()
+  const current = db
+    .prepare('SELECT track_id FROM playlist_tracks WHERE playlist_id = ?')
+    .all(playlistId)
+    .map((row) => row.track_id)
+  const wanted = new Set(orderedIds)
+
+  if (
+    orderedIds.length !== current.length ||
+    wanted.size !== orderedIds.length ||
+    !current.every((id) => wanted.has(id))
+  ) {
+    return { ok: false, error: 'The playlist changed. Please try again.' }
+  }
+
+  inTransaction(() => {
+    const update = db.prepare(
+      'UPDATE playlist_tracks SET position = ? WHERE playlist_id = ? AND track_id = ?'
+    )
+    orderedIds.forEach((trackId, i) => update.run(i + 1, playlistId, trackId))
+    db.prepare('UPDATE playlists SET updated_at = ? WHERE id = ?').run(Date.now(), playlistId)
+  })
+
+  return { ok: true }
 }

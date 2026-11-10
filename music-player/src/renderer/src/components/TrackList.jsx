@@ -60,6 +60,19 @@ function CrossIcon() {
   )
 }
 
+function GripIcon() {
+  return (
+    <svg width="14" height="18" viewBox="0 0 14 24" fill="currentColor" aria-hidden="true">
+      <circle cx="4" cy="6" r="1.6" />
+      <circle cx="10" cy="6" r="1.6" />
+      <circle cx="4" cy="12" r="1.6" />
+      <circle cx="10" cy="12" r="1.6" />
+      <circle cx="4" cy="18" r="1.6" />
+      <circle cx="10" cy="18" r="1.6" />
+    </svg>
+  )
+}
+
 const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
 
 const menuItem = {
@@ -207,15 +220,48 @@ function AddToPlaylistButton({ track }) {
   )
 }
 
-function TrackList({ tracks, player, favourites, onRemove }) {
-  return tracks.map((track) => {
+function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) {
+  const [dragIndex, setDragIndex] = useState(null)
+  const [overIndex, setOverIndex] = useState(null)
+
+  function endDrag() {
+    setDragIndex(null)
+    setOverIndex(null)
+  }
+
+  return tracks.map((track, index) => {
     const isCurrent = player.track && player.track.id === track.id
     const isFavourite = favourites.ids.has(track.id)
+    const isDragging = dragIndex === index
+    const showDropLine = dragIndex !== null && overIndex === index && dragIndex !== index
+    const dropLine =
+      dragIndex > index ? 'inset 0 2px 0 var(--accent)' : 'inset 0 -2px 0 var(--accent)'
+
     return (
       <div
         key={track.id}
-        onClick={() => player.play(track, tracks)}
+        onClick={() => (onPlay ? onPlay(track) : player.play(track, tracks))}
         title="Click to play"
+        draggable={!!onReorder}
+        onDragStart={(e) => {
+          if (!onReorder) return
+          setDragIndex(index)
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', String(index))
+        }}
+        onDragOver={(e) => {
+          if (dragIndex === null) return
+          e.preventDefault()
+          e.dataTransfer.dropEffect = 'move'
+          if (overIndex !== index) setOverIndex(index)
+        }}
+        onDrop={(e) => {
+          if (dragIndex === null) return
+          e.preventDefault()
+          if (dragIndex !== index) onReorder(dragIndex, index)
+          endDrag()
+        }}
+        onDragEnd={endDrag}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -225,9 +271,19 @@ function TrackList({ tracks, player, favourites, onRemove }) {
           borderRadius: 6,
           cursor: 'pointer',
           fontSize: 13,
+          opacity: isDragging ? 0.4 : 1,
+          boxShadow: showDropLine ? dropLine : 'none',
           background: isCurrent ? 'rgba(255,255,255,0.08)' : 'transparent'
         }}
       >
+        {onReorder && (
+          <span
+            title="Drag to reorder"
+            style={{ display: 'flex', opacity: 0.4, cursor: 'grab', marginRight: -4 }}
+          >
+            <GripIcon />
+          </span>
+        )}
         <ArtThumb file={track.artwork} />
         <div style={{ flex: 2, minWidth: 0 }}>
           <div style={{ ...ellipsis, fontWeight: isCurrent ? 600 : 400 }}>{track.title}</div>
