@@ -18,6 +18,7 @@ import { TagEditorProvider } from './TagEditorContext'
 import { usePlayer } from './usePlayer'
 import { useFavourites } from './useFavourites'
 import { useSleepTimer } from './useSleepTimer'
+import { useShortcuts } from './useShortcuts'
 import { NAV_GROUPS } from './navigation'
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((group) => group.items)
@@ -27,6 +28,7 @@ function AppShell() {
   const [activePage, setActivePage] = useState('songs')
   const [libraryVersion, setLibraryVersion] = useState(0)
   const player = usePlayer()
+  useShortcuts(player)
   const favourites = useFavourites()
   const sleep = useSleepTimer(player)
   const page = ALL_ITEMS.find((item) => item.id === activePage)
