@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 const NONE = { source: null, synced: false, lines: [] }
 
 export function useLyrics(trackId, currentTime) {
   const [data, setData] = useState(null)
+  const [version, setVersion] = useState(0)
 
   useEffect(() => {
     let alive = true
@@ -20,7 +21,9 @@ export function useLyrics(trackId, currentTime) {
     return () => {
       alive = false
     }
-  }, [trackId])
+  }, [trackId, version])
+
+  const reload = useCallback(() => setVersion((v) => v + 1), [])
 
   let active = -1
   if (data && data.synced) {
@@ -30,5 +33,5 @@ export function useLyrics(trackId, currentTime) {
     }
   }
 
-  return { data, active }
+  return { data, active, reload }
 }

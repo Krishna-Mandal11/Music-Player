@@ -858,3 +858,170 @@ div[style*='width: 560px'] button,
 div[style*='width: 560px'] input {
   border-radius: 12px !important;
 }
+
+/* ---------- Fixes: Now Playing layout, sliders, player bar ---------- */
+.np-main {
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.np-left {
+  max-height: 100%;
+  justify-content: center;
+}
+
+.np-cover > * {
+  width: min(320px, 34vh) !important;
+  height: min(320px, 34vh) !important;
+}
+
+.np-right {
+  min-height: 0;
+}
+
+.np-lyrics {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  position: relative;
+}
+
+.np-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.np-volume {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 14px;
+}
+
+.np-volume input[type='range'] {
+  width: 120px;
+}
+
+.np-actions div[style*='z-index: 21'] {
+  top: auto !important;
+  bottom: calc(100% + 8px) !important;
+  right: auto !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+}
+
+/* polished sliders (player bar and Now Playing only) */
+.player-bar input[type='range'],
+.np-overlay input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+  background: linear-gradient(
+    90deg,
+    var(--accent) var(--fill, 0%),
+    rgba(255, 255, 255, 0.22) var(--fill, 0%)
+  );
+}
+
+.player-bar input[type='range']::-webkit-slider-thumb,
+.np-overlay input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+  transition: transform 0.12s;
+}
+
+.player-bar input[type='range']:hover::-webkit-slider-thumb,
+.np-overlay input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.3);
+}
+
+/* keep everything inside the player bar */
+.player-bar > * {
+  min-width: 0;
+}
+
+.player-right {
+  padding-right: 4px;
+}
+
+.player-right input[type='range'] {
+  flex-shrink: 0;
+}
+
+/* ---------- Now Playing layout tweaks + scrollbar polish ---------- */
+.np-actions {
+  position: relative;
+  justify-content: center;
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+
+.np-volume {
+  margin: 6px 0 0;
+  justify-content: center;
+}
+
+.np-volume input[type='range'] {
+  width: 160px;
+}
+
+.np-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.np-queue {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 61;
+  width: 320px;
+  max-height: 38vh;
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(30, 28, 44, 0.9);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.np-note {
+  font-size: 12px;
+  opacity: 0.6;
+  padding: 0 8px 8px;
+}
+
+.np-cover > * {
+  width: min(320px, 30vh) !important;
+  height: min(320px, 30vh) !important;
+}
+
+/* scrollbars: thin, inset from the rounded corners */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 18px 0;
+}
+
+.content {
+  overflow-x: hidden;
+}

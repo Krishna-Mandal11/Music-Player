@@ -33,11 +33,13 @@ import { scanFolders, getArtworkDataUrl } from '../library/scanner'
 import { registerPlaylistIpc } from './registerPlaylistIpc'
 import { registerLyricsIpc } from './registerLyricsIpc'
 import { registerTagIpc } from './registerTagIpc'
+import { registerLyricsOnlineIpc } from './registerLyricsOnlineIpc'
 
 export function registerIpcHandlers(dbState) {
   registerPlaylistIpc()
   registerLyricsIpc()
   registerTagIpc()
+  registerLyricsOnlineIpc()
 
   ipcMain.handle('library:get-filter-options', () => getFilterOptions())
   ipcMain.handle('library:get-recently-added', () => getRecentlyAdded())

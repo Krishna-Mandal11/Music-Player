@@ -36,6 +36,7 @@ const api = {
   getArtwork: (file) => ipcRenderer.invoke('library:get-artwork', file),
   getLyrics: (id) => ipcRenderer.invoke('lyrics:get', id),
   getTagInfo: (id) => ipcRenderer.invoke('tags:get', id),
+  fetchOnlineLyrics: (id) => ipcRenderer.invoke('lyrics:fetch-online', id),
   pickArtwork: () => ipcRenderer.invoke('tags:pick-artwork'),
   saveTags: (payload) => ipcRenderer.invoke('tags:save', payload),
   getPlaylists: () => ipcRenderer.invoke('playlists:list'),

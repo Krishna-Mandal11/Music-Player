@@ -104,7 +104,13 @@ function AppShell() {
         </div>
       </main>
       <PlayerBar player={player} onOpenNowPlaying={() => setNowPlayingOpen(true)} />
-      {nowPlayingOpen && <NowPlaying player={player} onClose={() => setNowPlayingOpen(false)} />}
+      {nowPlayingOpen && (
+        <NowPlaying
+          player={player}
+          favourites={favourites}
+          onClose={() => setNowPlayingOpen(false)}
+        />
+      )}
     </div>
   )
 }

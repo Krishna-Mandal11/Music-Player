@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
 import ArtThumb from './ArtThumb'
+import { AddToPlaylistButton } from './TrackList'
 import { useLyrics } from '../useLyrics'
+import OnlineLyricsButton from './OnlineLyricsButton'
 
 const cache = new Map()
 
@@ -44,29 +46,66 @@ function PauseIcon({ size = 28 }) {
   )
 }
 
-function NowPlaying({ player, onClose }) {
-  const { track, queue, shuffle, repeat, playing, currentTime, duration } = player
+function Heart({ filled }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill={filled ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z" />
+    </svg>
+  )
+}
+
+const ellipsis = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+
+function NowPlaying({ player, favourites, onClose }) {
+  const { track, queue, index, shuffle, repeat, playing, currentTime, duration, volume, muted } =
+    player
   const total = duration || (track && track.duration) || 0
   const hasQueue = queue.length > 0
   const bg = useArt(track ? track.artwork : null)
-  const { data, active } = useLyrics(track ? track.id : null, currentTime)
+  const { data, active, reload } = useLyrics(track ? track.id : null, currentTime)
   const lineRefs = useRef([])
+  const lyricsRef = useRef(null)
+  const [showQueue, setShowQueue] = useState(false)
   const hasLines = data && data.lines.length > 0
   const tint = (on) => ({ opacity: on ? 1 : 0.55, color: on ? '#a898ff' : undefined })
+  const isFavourite = !!(track && favourites && favourites.ids.has(track.id))
+  const seekFill = total ? Math.min(100, (currentTime / total) * 100) : 0
+  const volumeFill = muted ? 0 : Math.round(volume * 100)
 
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (showQueue) setShowQueue(false)
+        else onClose()
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, showQueue])
 
+  // scroll only the lyrics box (never the whole page)
   useEffect(() => {
-    if (active < 0) return
-    const el = lineRefs.current[active]
-    if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    const box = lyricsRef.current
+    const el = active >= 0 ? lineRefs.current[active] : null
+    if (!box || !el) return
+    const top = el.offsetTop - box.clientHeight / 2 + el.clientHeight / 2
+    box.scrollTo({ top, behavior: 'smooth' })
   }, [active, data])
+
+  // new song: start the lyrics at the top
+  useEffect(() => {
+    if (lyricsRef.current) lyricsRef.current.scrollTop = 0
+    lineRefs.current = []
+  }, [track ? track.id : null])
 
   return (
     <div className="np-overlay">
@@ -98,6 +137,57 @@ function NowPlaying({ player, onClose }) {
           <div className="np-title">{track ? track.title : 'Nothing playing'}</div>
           <div className="np-artist">{track ? track.artist || 'Unknown artist' : ''}</div>
 
+          {track && (
+            <div className="np-actions">
+              <button
+                className="icon-btn"
+                title={isFavourite ? 'Remove from Favourites' : 'Add to Favourites'}
+                onClick={() => favourites && favourites.toggle(track.id)}
+                style={{
+                  color: isFavourite ? '#f87171' : undefined,
+                  opacity: isFavourite ? 1 : 0.75
+                }}
+              >
+                <Heart filled={isFavourite} />
+              </button>
+              <AddToPlaylistButton track={track} />
+              <button
+                className="icon-btn"
+                title="Queue"
+                onClick={() => setShowQueue((v) => !v)}
+                style={{ opacity: showQueue ? 1 : 0.75, color: showQueue ? '#a898ff' : undefined }}
+              >
+                <Icon name="queue" />
+              </button>
+
+              {showQueue && (
+                <>
+                  <div className="np-backdrop" onClick={() => setShowQueue(false)} />
+                  <div className="np-queue">
+                    <div style={{ padding: '4px 8px 8px', opacity: 0.7, fontSize: 13 }}>
+                      Queue · {queue.length} track{queue.length === 1 ? '' : 's'}
+                    </div>
+                    {queue.map((t, i) => (
+                      <div
+                        key={`${t.id}-${i}`}
+                        className={i === index ? 'queue-row current' : 'queue-row'}
+                        onClick={() => player.jumpTo(i)}
+                      >
+                        <ArtThumb file={t.artwork} size={32} />
+                        <div style={{ minWidth: 0, fontSize: 13 }}>
+                          <div style={ellipsis}>{t.title}</div>
+                          <div style={{ ...ellipsis, opacity: 0.6 }}>
+                            {t.artist || 'Unknown artist'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="np-seek">
             <span className="time">{formatTime(currentTime)}</span>
             <input
@@ -106,6 +196,7 @@ function NowPlaying({ player, onClose }) {
               max={total}
               step="0.1"
               value={Math.min(currentTime, total)}
+              style={{ '--fill': `${seekFill}%` }}
               disabled={!track}
               onChange={(e) => player.seek(Number(e.target.value))}
             />
@@ -156,6 +247,25 @@ function NowPlaying({ player, onClose }) {
               )}
             </button>
           </div>
+
+          <div className="np-volume">
+            <button
+              className="icon-btn"
+              onClick={player.toggleMute}
+              title={muted ? 'Unmute' : 'Mute'}
+              style={{ opacity: muted ? 0.4 : 0.8 }}
+            >
+              <Icon name="volume" />
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={volumeFill}
+              style={{ '--fill': `${volumeFill}%` }}
+              onChange={(e) => player.setVolume(Number(e.target.value) / 100)}
+            />
+          </div>
         </div>
 
         <div className="np-right">
@@ -164,12 +274,19 @@ function NowPlaying({ player, onClose }) {
             <div className="np-empty">
               No lyrics for this song.
               <div style={{ fontSize: 12, opacity: 0.6, marginTop: 8 }}>
-                Save a .lrc file with the same name next to the song file to show them here.
+                Save a .lrc file with the same name next to the song, or search online.
               </div>
+              <OnlineLyricsButton trackId={track.id} onDone={reload} />
+            </div>
+          )}
+          {hasLines && !data.synced && (
+            <div className="np-note">
+              These lyrics have no timestamps, so they can't follow the song.
+              <OnlineLyricsButton trackId={track.id} onDone={reload} />
             </div>
           )}
           {hasLines && (
-            <div className="np-lyrics">
+            <div className="np-lyrics" ref={lyricsRef}>
               {data.lines.map((line, i) => {
                 const isActive = i === active
                 return (

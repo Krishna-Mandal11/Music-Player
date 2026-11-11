@@ -90,7 +90,7 @@ const menuItem = {
   ...ellipsis
 }
 
-function AddToPlaylistButton({ track }) {
+export function AddToPlaylistButton({ track }) {
   const { playlists, create, addTracks } = usePlaylists()
   const [open, setOpen] = useState(false)
   const [newName, setNewName] = useState('')

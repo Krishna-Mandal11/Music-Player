@@ -38,6 +38,8 @@ function PlayerBar({ player, onOpenNowPlaying }) {
   const total = duration || track?.duration || 0
   const hasQueue = queue.length > 0
   const active = (on) => ({ opacity: on ? 1 : 0.5, color: on ? '#a898ff' : undefined })
+  const seekFill = total ? Math.min(100, (currentTime / total) * 100) : 0
+  const volumeFill = muted ? 0 : Math.round(volume * 100)
 
   return (
     <footer className="player-bar">
@@ -110,6 +112,7 @@ function PlayerBar({ player, onOpenNowPlaying }) {
             max={total}
             step="0.1"
             value={Math.min(currentTime, total)}
+            style={{ '--fill': `${seekFill}%` }}
             disabled={!track}
             onChange={(e) => player.seek(Number(e.target.value))}
           />
@@ -138,7 +141,8 @@ function PlayerBar({ player, onOpenNowPlaying }) {
           type="range"
           min="0"
           max="100"
-          value={muted ? 0 : Math.round(volume * 100)}
+          value={volumeFill}
+          style={{ '--fill': `${volumeFill}%` }}
           onChange={(e) => player.setVolume(Number(e.target.value) / 100)}
         />
       </div>
