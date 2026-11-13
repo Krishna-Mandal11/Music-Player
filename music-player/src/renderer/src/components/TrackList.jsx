@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import ArtThumb from './ArtThumb'
 import { usePlaylists } from '../PlaylistsContext'
 import { useTagEditor } from '../TagEditorContext'
@@ -224,6 +225,37 @@ export function AddToPlaylistButton({ track }) {
 function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) {
   const [dragIndex, setDragIndex] = useState(null)
   const tagEditor = useTagEditor()
+  const [menu, setMenu] = useState(null)
+  const [removed, setRemoved] = useState(() => new Set())
+
+  useEffect(() => {
+    if (!menu) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMenu(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menu])
+
+  async function deleteSong(song) {
+    setMenu(null)
+    const ok = window.confirm(
+      `Permanently delete "${song.title}"?\n\nThe file is erased from your disk and CANNOT be restored from the Recycle Bin.`
+    )
+    if (!ok) return
+    if (player.track && player.track.id === song.id) player.pause()
+    let result
+    try {
+      result = await window.api.deleteTrack(song.id)
+    } catch (err) {
+      result = { ok: false, error: err.message }
+    }
+    if (!result.ok) {
+      window.alert(result.error)
+      return
+    }
+    setRemoved((prev) => new Set(prev).add(song.id))
+  }
   const [overIndex, setOverIndex] = useState(null)
 
   function endDrag() {
@@ -232,6 +264,7 @@ function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) 
   }
 
   return tracks.map((track, index) => {
+    if (removed.has(track.id)) return null
     const isCurrent = player.track && player.track.id === track.id
     const isFavourite = favourites.ids.has(track.id)
     const isDragging = dragIndex === index
@@ -243,6 +276,11 @@ function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) 
       <div
         key={track.id}
         className="track-row"
+        onContextMenu={(e) => {
+          e.preventDefault()
+          e.stopPropagation()
+          setMenu({ id: track.id, x: e.clientX, y: e.clientY })
+        }}
         onClick={() => (onPlay ? onPlay(track) : player.play(track, tracks))}
         title="Click to play"
         draggable={!!onReorder}
@@ -345,6 +383,61 @@ function TrackList({ tracks, player, favourites, onRemove, onReorder, onPlay }) 
             <CrossIcon />
           </button>
         )}
+        {menu &&
+          menu.id === track.id &&
+          createPortal(
+            <div onClick={(e) => e.stopPropagation()}>
+              <div
+                className="ctx-backdrop"
+                onClick={() => setMenu(null)}
+                onContextMenu={(e) => {
+                  e.preventDefault()
+                  setMenu(null)
+                }}
+              />
+              <div
+                className="ctx-menu"
+                style={{
+                  left: Math.min(menu.x, window.innerWidth - 230),
+                  top: Math.min(menu.y, window.innerHeight - 200)
+                }}
+              >
+                <button
+                  className="ctx-item"
+                  onClick={() => {
+                    setMenu(null)
+                    if (onPlay) onPlay(track)
+                    else player.play(track, tracks)
+                  }}
+                >
+                  Play
+                </button>
+                <button
+                  className="ctx-item"
+                  onClick={() => {
+                    setMenu(null)
+                    favourites.toggle(track.id)
+                  }}
+                >
+                  {isFavourite ? 'Remove from Favourites' : 'Add to Favourites'}
+                </button>
+                <button
+                  className="ctx-item"
+                  onClick={() => {
+                    setMenu(null)
+                    tagEditor.open(track)
+                  }}
+                >
+                  Edit tags and cover…
+                </button>
+                <div className="ctx-sep" />
+                <button className="ctx-item danger" onClick={() => deleteSong(track)}>
+                  Delete
+                </button>
+              </div>
+            </div>,
+            document.body
+          )}
       </div>
     )
   })

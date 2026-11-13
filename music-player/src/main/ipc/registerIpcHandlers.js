@@ -34,12 +34,14 @@ import { registerPlaylistIpc } from './registerPlaylistIpc'
 import { registerLyricsIpc } from './registerLyricsIpc'
 import { registerTagIpc } from './registerTagIpc'
 import { registerLyricsOnlineIpc } from './registerLyricsOnlineIpc'
+import { registerTrackIpc } from './registerTrackIpc'
 
 export function registerIpcHandlers(dbState) {
   registerPlaylistIpc()
   registerLyricsIpc()
   registerTagIpc()
   registerLyricsOnlineIpc()
+  registerTrackIpc()
 
   ipcMain.handle('library:get-filter-options', () => getFilterOptions())
   ipcMain.handle('library:get-recently-added', () => getRecentlyAdded())

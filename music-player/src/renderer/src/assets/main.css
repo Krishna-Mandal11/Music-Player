@@ -1025,3 +1025,362 @@ div[style*='width: 560px'] input {
 .content {
   overflow-x: hidden;
 }
+
+/* ---------- Lyrics display: focus, karaoke fill, cover glow ---------- */
+@property --p {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+
+.np-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(55% 45% at 72% 50%, var(--np-accent-soft), transparent 70%),
+    radial-gradient(40% 35% at 20% 90%, var(--np-accent-soft), transparent 70%);
+  opacity: 0.55;
+  transition: opacity 0.6s;
+}
+
+.np-line {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+  padding: 10px 0;
+  transform-origin: left center;
+  transition:
+    opacity 0.45s ease,
+    filter 0.45s ease,
+    transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.np-line.active {
+  font-size: 26px;
+  font-weight: 800;
+  transform: scale(1.14);
+}
+
+.np-lyrics {
+  padding-right: 40px;
+}
+
+.np-lyrics.synced:hover .np-line {
+  filter: none !important;
+}
+
+.np-fill {
+  --p: 0%;
+  display: inline;
+  background: linear-gradient(90deg, #fff var(--p), rgba(255, 255, 255, 0.42) var(--p));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 14px var(--np-accent));
+  transition: --p 0.28s linear;
+}
+
+.np-focus-btn {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 100;
+  width: 46px;
+  height: 46px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.np-focus-title {
+  position: absolute;
+  top: 28px;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 0 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-focus-title span {
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.np-overlay.focus .np-left {
+  display: none;
+}
+
+.np-overlay.focus .np-main {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 70px 12vw 30px;
+}
+
+.np-overlay.focus .np-line {
+  font-size: clamp(28px, 3.6vw, 48px);
+}
+
+.np-overlay.focus .np-line.active {
+  font-size: clamp(28px, 3.6vw, 48px);
+}
+
+.np-overlay.focus .np-glow {
+  opacity: 0.8;
+}
+
+/* ---------- Now Playing menu + lyrics versions dialog ---------- */
+.np-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 61;
+  width: 280px;
+  max-height: 50vh;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: 16px;
+  text-align: left;
+  background: rgba(30, 28, 44, 0.92);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.np-menu-title {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+  padding: 2px 6px 8px;
+}
+
+.np-menu-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 0 6px 8px;
+}
+
+.np-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 4px;
+}
+
+.np-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.np-chip:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.np-menu-sep {
+  height: 1px;
+  margin: 10px 0 6px;
+  background: var(--glass-border);
+}
+
+.np-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.np-menu-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.lv-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lv-dialog {
+  width: 620px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow-y: auto;
+  padding: 22px;
+  border-radius: 22px;
+  background: rgba(30, 27, 48, 0.9);
+  border: 1px solid var(--glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 24px 60px rgba(0, 0, 0, 0.55);
+  user-select: text;
+}
+
+.lv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lv-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
+}
+
+.lv-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.lv-badge {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.lv-badge.best {
+  background: rgba(124, 92, 255, 0.5);
+}
+
+.lv-badge.warn {
+  background: rgba(255, 170, 60, 0.35);
+}
+
+.lv-title {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lv-title span {
+  font-weight: 400;
+  opacity: 0.65;
+}
+
+.lv-meta {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+.lv-preview {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.np-custom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px 0;
+}
+
+.np-custom input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+/* ---------- Right-click menu ---------- */
+.ctx-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.ctx-menu {
+  position: fixed;
+  z-index: 81;
+  width: 230px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(30, 28, 44, 0.94);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    0 16px 40px rgba(0, 0, 0, 0.5);
+  color: var(--text);
+}
+
+.ctx-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ctx-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.ctx-item.danger {
+  color: #ff8a8a;
+}
+
+.ctx-item.danger:hover {
+  background: rgba(255, 90, 90, 0.18);
+}
+
+.ctx-sep {
+  height: 1px;
+  margin: 5px 6px;
+  background: var(--glass-border);
+}

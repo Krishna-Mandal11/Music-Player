@@ -108,6 +108,8 @@ function AppShell() {
         <NowPlaying
           player={player}
           favourites={favourites}
+          sleep={sleep}
+          onNavigate={setActivePage}
           onClose={() => setNowPlayingOpen(false)}
         />
       )}
