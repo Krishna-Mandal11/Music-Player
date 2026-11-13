@@ -12,6 +12,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: music-player
+  icon: build/icon.png
   target:
     - nsis
 nsis:
